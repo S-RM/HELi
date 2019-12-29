@@ -2,10 +2,6 @@
 
 HELi (pronounced *hee*-*lee*) is a Windows Event Log parser written in Python. We have designed it to help incident responders rapidly ingest Windows logs from EVTX files into an Elasticsearch index.
 
-##### Why did we build this?
-
-Lorem.
-
 ## Features
 
 Designed specifically to give incident responders visibility into vast amounts of EVTX data, the main features of HELi are:
@@ -35,7 +31,7 @@ At its simplest, you can use HELi to parse individual EVTX files and transmit th
 
 By default, HELi will send processed logs over the Elasticsearch bulk upload API to `127.0.0.1:9200` under the index name `projectx`. Refer to the Parameters section for further configuration information.
 
-![](C:\Users\admin\Documents\img\screenshot-thelp_single_evtx_file.png)
+![](https://github.com/S-RM/HELi/img/screenshot-thelp_single_evtx_file.png)
 
 [^Image 1]: An example of HELi processing a single EVTX file on a Windows machine.
 
