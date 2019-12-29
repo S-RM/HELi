@@ -31,9 +31,9 @@ At its simplest, you can use HELi to parse individual EVTX files and transmit th
 
 By default, HELi will send processed logs over the Elasticsearch bulk upload API to `127.0.0.1:9200` under the index name `projectx`. Refer to the Parameters section for further configuration information.
 
-![]( https://raw.githubusercontent.com/S-RM/HELi/master/img/screenshot-thelp_single_evtx_file.png )
+**Image 1:** An example of HELi processing a single EVTX file on a Windows machine.
 
-[^Image 1]: An example of HELi processing a single EVTX file on a Windows machine.
+![Image 1]( https://raw.githubusercontent.com/S-RM/HELi/master/img/screenshot-thelp_single_evtx_file.png )
 
 ### Directory Mode
 
@@ -91,24 +91,24 @@ The tables below list the required and optional parameters HELi supports, alongs
 
 #### Required
 
-| Parameter       | Short Parameter | Description                                                  |
-| --------------- | --------------- | ------------------------------------------------------------ |
-| --evtxfile      | -f              | Specify the EVTX file to process in Individual File Mode with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
-| --evtxdirectory | -d              | Specific the folder to process in Directory Mode or Directory Mode with Prioritisations with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
+| Parameter   | Short Parameter | Description                                                  |
+| ----------- | --------------- | ------------------------------------------------------------ |
+| --file      | -f              | Specify the EVTX file to process in Individual File Mode with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
+| --directory | -d              | Specific the folder to process in Directory Mode or Directory Mode with Prioritisations with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
 
 #### Optional
 
-| Parameter          | Short Parameter | Default Value         | Description                                                  |
-| ------------------ | --------------- | --------------------- | ------------------------------------------------------------ |
-| --cores            | -c              | \# of cores supported | You can specify the number of cores to use during processing. If left blank, this value will default to the number of cores supported by your machine, as detected by the Python`multiprocessing.cpu_count()` function. |
-| --buffersize       | -b              | 1,000                 | Event Logs are processed and submitted to Elasticsearch in batches equal to the value of this parameter. The implications of how this value affects overall processing time are not fully understood, therefore, we recommend using the default value for now. |
-| --index            | -i              | projectx              | This parameter specifies the destination Elasticsearch index for ingesting Event Logs. Remember that Elasticsearch indexes have naming restrictions, and only support lowercase characters. Refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more information. |
-| --nodes            | -n              | 127.0.0.1:9200        | You can specify multiple Elasticsearch nodes, which THELP will cycle through if the first node returns an HTTP error code (such as `HTTP 429`) when uploading Event Logs. Use comma separated values if specifying more than one node, for example, `"10.0.0.1:9200,10.0.0.2:9200,10.0.0.3:9200"`. If you don't specify a value, THELP will assume there is an Elasticsearch index available on localhost. |
-| --authorization    | -a              | None                  | Elasticsearch supports Basic Authentication. If you secure your Elasticsearch with a username and password you can provide these here in the format `USERNAME:PASSWORD`. The default setting is not to use Basic Authentication. |
-| --prioritisefolder | -p              | None                  | When processing a directory with subfolders, you can choose to prioritise certain subfolders and ensure they are processed first.<br /><br />You can specify multiple subfolders using comma separated values, and the order you list them in will be enforced, for example, "dc-01, dc-02, dc-03" will process `dc-01` first before moving on to `dc-02`, and so on. If you don't specify a value, subfolders will be processed in alphabetical order.<br /><br />When combined with the --prioritiselog parameter, this behaviour changes slightly. Refer to *Directory Mode with Prioritisations*. |
-| --prioritiselog    | -l              | None                  | When processing a directory, you can choose to prioritise certain logs and ensure they are processed before all other files.<br /><br />You can specify multiple file names using comma separated values, and the order you list them in will be enforced, for example, "Security.evtx,Application.evtx" will process `Security.evtx` files first (across all folders) before moving on to `Application.evtx`. If you don't specify a value, files will be processed in alphabetical order. |
-| --strict           | -s              | False                 | Used in conjunction with `--prioritisefolder` or `--prioritiselogs`, this parameter will ensure that only the files or folders you specified will be processed. Refer to *Directory Mode with Prioritisations* for more information on this behaviour. |
-| --debug            |                 | False                 | Enabling the `--debug` flag will disable posting any data to Elasticsearch and will provide a more verbose project description banner. If used with `--prioritisefolder` or `--prioritiselogs`, the order of the files to process will be listed. |
+| Parameter | Short Parameter | Default Value         | Description                                                  |
+| --------- | --------------- | --------------------- | ------------------------------------------------------------ |
+| --cores   | -c              | \# of cores supported | You can specify the number of cores to use during processing. If left blank, this value will default to the number of cores supported by your machine, as detected by the Python`multiprocessing.cpu_count()` function. |
+| --buffer  | -b              | 1,000                 | Event Logs are processed and submitted to Elasticsearch in batches equal to the value of this parameter. The implications of how this value affects overall processing time are not fully understood, therefore, we recommend using the default value for now. |
+| --index   | -i              | projectx              | This parameter specifies the destination Elasticsearch index for ingesting Event Logs. Remember that Elasticsearch indexes have naming restrictions, and only support lowercase characters. Refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more information. |
+| --nodes   | -n              | 127.0.0.1:9200        | You can specify multiple Elasticsearch nodes, which THELP will cycle through if the first node returns an HTTP error code (such as `HTTP 429`) when uploading Event Logs. Use comma separated values if specifying more than one node, for example, `"10.0.0.1:9200,10.0.0.2:9200,10.0.0.3:9200"`. If you don't specify a value, THELP will assume there is an Elasticsearch index available on localhost. |
+| --token   | -t              | None                  | Elasticsearch supports Basic Authentication. If you secure your Elasticsearch with a username and password you can provide these here in the format `USERNAME:PASSWORD`. The default setting is not to use Basic Authentication. |
+| --pfolder | -p              | None                  | When processing a directory with subfolders, you can choose to prioritise certain subfolders and ensure they are processed first.<br /><br />You can specify multiple subfolders using comma separated values, and the order you list them in will be enforced, for example, "dc-01, dc-02, dc-03" will process `dc-01` first before moving on to `dc-02`, and so on. If you don't specify a value, subfolders will be processed in alphabetical order.<br /><br />When combined with the --prioritiselog parameter, this behaviour changes slightly. Refer to *Directory Mode with Prioritisations*. |
+| --plog    | -l              | None                  | When processing a directory, you can choose to prioritise certain logs and ensure they are processed before all other files.<br /><br />You can specify multiple file names using comma separated values, and the order you list them in will be enforced, for example, "Security.evtx,Application.evtx" will process `Security.evtx` files first (across all folders) before moving on to `Application.evtx`. If you don't specify a value, files will be processed in alphabetical order. |
+| --strict  | -s              | False                 | Used in conjunction with `--prioritisefolder` or `--prioritiselogs`, this parameter will ensure that only the files or folders you specified will be processed. Refer to *Directory Mode with Prioritisations* for more information on this behaviour. |
+| --debug   |                 | False                 | Enabling the `--debug` flag will disable posting any data to Elasticsearch and will provide a more verbose project description banner. If used with `--prioritisefolder` or `--prioritiselogs`, the order of the files to process will be listed. |
 
 ## Requirements
 
