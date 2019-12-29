@@ -122,7 +122,7 @@ For now, we only officially support HELi on Python2. It requires the following m
 
 ## Acknowledgements
 
-HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.#
+HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
 
 All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
 
