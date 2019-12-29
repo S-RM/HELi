@@ -33,6 +33,8 @@ By default, HELi will send processed logs over the Elasticsearch bulk upload API
 
 **Image 1:** An example of HELi processing a single EVTX file on a Windows machine.
 
+------
+
 ![Image 1]( https://raw.githubusercontent.com/S-RM/HELi/master/img/screenshot-thelp_single_evtx_file.png )
 
 ### Directory Mode
