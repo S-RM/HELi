@@ -150,6 +150,8 @@ We are investigating three design changes to increase the speed of this operatio
 - [ ] Provider prettier and more useful logging, including as an external log file.
 - [ ] Choose how to handle various HTTP errors from Elasticsearch; terminate or continue?
 - [ ] Streamline uploading of Event Log data to Elasticsearch and investigate speed improvements.
+- [ ] Create an explicit mapping for Elasticsearch documents.
+- [ ] Generally clean the code and remove some inefficiencies!
 
 
 
