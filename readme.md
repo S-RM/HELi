@@ -89,7 +89,7 @@ The above example will work exactly as the previous example, except it will not 
 
 ## Parameters
 
-The tables below list the required and optional parameters HELi supports, alongside a description of its functionality.
+The tables below list the required and optional parameters HELi supports, alongside a description of their functionality.
 
 #### Required
 
