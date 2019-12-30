@@ -25,7 +25,13 @@ Designed specifically to give incident responders visibility into vast amounts o
 - Validation of Event Logs submitted to Elasticsearch (i.e., checks that records in = records out).
 - Estimated processing times for each EVTX file.
 
-## Usage
+## Acknowledgements
+
+HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
+
+All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
+
+# Usage
 
 You can use HELi in three different modes, each of which applies itself to a different incident response scenario. In short, these use cases are:
 
@@ -35,7 +41,7 @@ You can use HELi in three different modes, each of which applies itself to a dif
 
 The sections below outline these modes in further detail.
 
-### Individual File Mode
+## Individual File Mode
 
 At its simplest, you can use HELi to parse individual EVTX files and transmit the Event Log data into an Elasticsearch index, using as many cores as you can provide.
 
@@ -47,13 +53,13 @@ By default, HELi will send processed logs over the Elasticsearch bulk upload API
 
 ![Image 1]( https://raw.githubusercontent.com/S-RM/HELi/master/img/screenshot-thelp_single_evtx_file.png )
 
-### Directory Mode
+## Directory Mode
 
 Directory Mode is functionally similar to Individual File Mode, with the exception that you can specify a folder rather than a single file. HELi will then recursively search that folder for all EVTX files and process them one at a time in the same manner as with Individual File Mode.
 
 This mode is most useful when you have a large quantity of Event Logs to ingest in one go. 
 
-### Directory Mode with Prioritisations
+## Directory Mode with Prioritisations
 
 Although Directory Mode is useful, it has limitations when dealing with larger projects. For example, we commonly collect thousands of Event Logs from IT environments and organise them in a file structure like below:
 
@@ -122,7 +128,7 @@ The tables below list the required and optional parameters HELi supports, alongs
 | --strict  | -s              | False                 | Used in conjunction with `--prioritisefolder` or `--prioritiselogs`, this parameter will ensure that only the files or folders you specified will be processed. Refer to *Directory Mode with Prioritisations* for more information on this behaviour. |
 | --debug   | None            | False                 | Enabling the `--debug` flag will disable posting any data to Elasticsearch and will provide a more verbose project description banner. If used with `--prioritisefolder` or `--prioritiselogs`, the order of the files to process will be listed. |
 
-## Requirements
+# Requirements
 
 For now, we only officially support HELi on Python2. It requires the following modules:
 
@@ -130,11 +136,11 @@ For now, we only officially support HELi on Python2. It requires the following m
 - xmltodict
 - python-evtx
 
-## Known Issues and Next Steps
+# Known Issues and Next Steps
 
 In most situations, HELi functions as expected. However, even such a small application as this is beget by small issues and desired improvements. 
 
-### Limitations
+## Limitations
 
 Reducing the processing time for Event Logs is a key objective of this project. Our efforts to improve HELi's overall speed has hit a bottleneck with parsing the Event Log XML data into a dictionary with the `xmltodict` library, which is a time-intensive operation.
 
@@ -144,11 +150,11 @@ We are investigating three design changes to increase the speed of this operatio
 - **Develop our own Event Log XML parser in Python**, this would likely look like a stripped down XML parser that uses multiple XPath queries to construct a dictionary.
 - **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPi.
 
-### Issues to Fix
+## Issues to Fix
 
 - [ ] For an as-yet-unknown reason, the HELi processes sometimes idle during a project. Sending a Keyboard Interrupt (CTRL+C) resumes the processes without causing data loss.
 
-### Improvements
+## Improvements
 
 - [ ] Address speed improvements (refer to *Limitations*).
 - [ ] Provider prettier and more useful logging, including as an external log file.
@@ -157,8 +163,3 @@ We are investigating three design changes to increase the speed of this operatio
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
 
-## Acknowledgements
-
-HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
-
-All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
