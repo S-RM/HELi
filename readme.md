@@ -25,6 +25,14 @@ Designed specifically to give incident responders visibility into vast amounts o
 - Validation of Event Logs submitted to Elasticsearch (i.e., checks that records in = records out).
 - Estimated processing times for each EVTX file.
 
+## Requirements
+
+For now, we only officially support HELi on Python2. It requires the following modules:
+
+- requests
+- xmltodict
+- python-evtx
+
 ## Acknowledgements
 
 HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
@@ -121,14 +129,6 @@ The tables below list the required and optional parameters HELi supports, alongs
 | --plog    | -l              | None                  | When processing a directory, you can choose to prioritise certain logs and ensure they are processed before all other files.<br /><br />You can specify multiple file names using comma separated values, and the order you list them in will be enforced, for example, "Security.evtx,Application.evtx" will process `Security.evtx` files first (across all folders) before moving on to `Application.evtx`. If you don't specify a value, files will be processed in alphabetical order. |
 | --strict  | -s              | False                 | Used in conjunction with `--prioritisefolder` or `--prioritiselogs`, this parameter will ensure that only the files or folders you specified will be processed. Refer to *Directory Mode with Prioritisations* for more information on this behaviour. |
 | --debug   | None            | False                 | Enabling the `--debug` flag will disable posting any data to Elasticsearch and will provide a more verbose project description banner. If used with `--prioritisefolder` or `--prioritiselogs`, the order of the files to process will be listed. |
-
-# Requirements
-
-For now, we only officially support HELi on Python2. It requires the following modules:
-
-- requests
-- xmltodict
-- python-evtx
 
 # Known Issues and Next Steps
 
