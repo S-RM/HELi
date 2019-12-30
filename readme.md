@@ -31,6 +31,12 @@ HELi would not exist without the brilliant work by [@williballenthin](https://gi
 
 All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
 
+
+
+------
+
+
+
 # Usage
 
 You can use HELi in three different modes, each of which applies itself to a different incident response scenario. In short, these use cases are:
@@ -46,12 +52,6 @@ The sections below outline these modes in further detail.
 At its simplest, you can use HELi to parse individual EVTX files and transmit the Event Log data into an Elasticsearch index, using as many cores as you can provide.
 
 By default, HELi will send processed logs over the Elasticsearch bulk upload API to `127.0.0.1:9200` under the index name `projectx`. Refer to the Parameters section for further configuration information.
-
-------
-
-**Image 1:** An example of HELi processing a single EVTX file on a Windows machine.
-
-![Image 1]( https://raw.githubusercontent.com/S-RM/HELi/master/img/screenshot-thelp_single_evtx_file.png )
 
 ## Directory Mode
 
@@ -128,6 +128,12 @@ The tables below list the required and optional parameters HELi supports, alongs
 | --strict  | -s              | False                 | Used in conjunction with `--prioritisefolder` or `--prioritiselogs`, this parameter will ensure that only the files or folders you specified will be processed. Refer to *Directory Mode with Prioritisations* for more information on this behaviour. |
 | --debug   | None            | False                 | Enabling the `--debug` flag will disable posting any data to Elasticsearch and will provide a more verbose project description banner. If used with `--prioritisefolder` or `--prioritiselogs`, the order of the files to process will be listed. |
 
+
+
+------
+
+
+
 # Requirements
 
 For now, we only officially support HELi on Python2. It requires the following modules:
@@ -135,6 +141,12 @@ For now, we only officially support HELi on Python2. It requires the following m
 - requests
 - xmltodict
 - python-evtx
+
+
+
+------
+
+
 
 # Known Issues and Next Steps
 
