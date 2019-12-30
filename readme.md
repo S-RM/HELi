@@ -63,14 +63,16 @@ This mode is most useful when you have a large quantity of Event Logs to ingest 
 
 ## Directory Mode with Prioritisations
 
-Although Directory Mode is useful, it has limitations when dealing with larger projects. For example, we commonly collect thousands of Event Logs from IT environments and organise them in a file structure like below:
+Although Directory Mode is useful, it has limitations when dealing with larger projects. For example, we commonly collect thousands of Event Logs from IT environments and organise them in a file structure such as indicated below:
 
 - Hostname
   - Event Log
   - Event Log
   - ...
+- Hostname
+  - ...
 
-Even in the early stage of an incident response, we often suspect that certain machines (such as the domain controllers) or specific types of Event Logs (such as Security.evtx) will be critical for our analysis. Waiting for HELi to process these artefacts in Directory Mode could take a long time and our hinder our ability to provide timely information.
+Even in the early stage of an incident response, we often suspect that certain machines (such as the domain controllers) or specific types of Event Logs (such as Security.evtx) will be critical for our analysis. Waiting for HELi to process these artefacts in Directory Mode could take a long time and hinder our ability to provide timely information.
 
 To address this problem, we can instruct HELi to prioritise artefacts using a combination of the following parameters:
 
@@ -87,23 +89,29 @@ Executing HELi with the above configuration would ingest Event Logs in the follo
 
 - Folder: AD-01
   - Event Log: Security.evtx
-  - Event Log: Application.evtx
-  - Event Log: System.evtx
 - Folder: AD-02
   - Event Log: Security.evtx
+- Folder: AD-01
   - Event Log: Application.evtx
+- Folder: AD-02
+  - Event Log: Application.evtx
+- Folder: AD-01
+  - Event Log: System.evtx
+- Folder: AD-02
   - Event Log: System.evtx
 - *Revert to Directory Mode for remainder of project...*
 
-Furthermore, sometimes a responder will collect Event Logs from an IT environment to ensure that data is preserved, but subsequently identify that their analysis needs to only focus on a few key machines.
+This functionality therefore ensures, for instance, that the Security.evtx logs for the two specified machines are available in Elasticsearch before all other logs, allowing the responder to access critical data faster.
 
-Rather than have the responder copy and paste folders and logs in order to run HELi in Directory Mode without ingesting the remaining data, you can instruct HELi to prioritise artefacts in strict mode:
+Furthermore, sometimes a responder will collect Event Logs from an IT environment to ensure that data is preserved, but will subsequently identify that their analysis needs to only focus on a few key machines.
+
+Rather than have the responder move folders in order to run HELi in Directory Mode without ingesting the remaining data, you can instruct HELi to prioritise artefacts in strict mode:
 
 ```
 ./HELi.py -d ./logs -p AD-01,AD-02 -l Security.evtx,Application.evtx,System.evtx --strict
 ```
 
-The above example will work exactly as the previous example, except it will not process and Event Logs outside of the three logs you have specified within `AD-01` and `AD-02`.
+The above example will work exactly as the previous example, except it will not process any Event Logs outside of the three logs you have specified within `AD-01` and `AD-02`.
 
 ## Parameters
 
