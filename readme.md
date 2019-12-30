@@ -35,6 +35,12 @@ All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) a
 
 ------
 
+# Contents
+
+[TOC]
+
+------
+
 
 
 # Usage
@@ -174,4 +180,6 @@ We are investigating three design changes to increase the speed of this operatio
 - [ ] Streamline uploading of Event Log data to Elasticsearch and investigate speed improvements.
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
+
+
 
