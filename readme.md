@@ -31,14 +31,6 @@ HELi would not exist without the brilliant work by [@williballenthin](https://gi
 
 All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
 
-
-
-------
-
-# Contents
-
-[TOC]
-
 ------
 
 
