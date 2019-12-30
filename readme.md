@@ -122,7 +122,7 @@ The tables below list the required and optional parameters HELi supports, alongs
 | Parameter   | Short Parameter | Description                                                  |
 | ----------- | --------------- | ------------------------------------------------------------ |
 | --file      | -f              | Specify the EVTX file to process in Individual File Mode with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
-| --directory | -d              | Specific the folder to process in Directory Mode or Directory Mode with Prioritisations with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
+| --directory | -d              | Specify the folder to process in Directory Mode or Directory Mode with Prioritisations with a relative or absolute path. On Linux systems, this parameter is case-sensitive. |
 
 #### Optional
 
