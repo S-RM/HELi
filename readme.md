@@ -18,7 +18,7 @@ Designed specifically to give incident responders visibility into vast amounts o
 
 - Fully multicore processing (tested up to 128 cores).
 - Parses Event Log XML into properly nested JSON.
-- Memory efficient; generally less than 40mb RAM required per core .
+- Memory efficient; generally less than 40mb RAM required per core.
 - Supports production Elasticsearch environments with multiple nodes.
 - Recursive discovery of EVTX files within directories.
 - Can prioritise ingesting specific types of Event Logs, such as Security or System logs.
@@ -53,7 +53,7 @@ The sections below outline these modes in further detail.
 
 At its simplest, you can use HELi to parse individual EVTX files and transmit the Event Log data into an Elasticsearch index, using as many cores as you can provide.
 
-By default, HELi will send processed logs over the Elasticsearch bulk upload API to `127.0.0.1:9200` under the index name `projectx`. Refer to the Parameters section for further configuration information.
+By default, HELi will send processed logs over the Elasticsearch bulk upload API to `127.0.0.1:9200` under the index name `projectx`. Refer to the *Parameters* section for further configuration information.
 
 ## Directory Mode
 
