@@ -1,6 +1,16 @@
 # HELi - Helpful Event Log Ingestor
 
-HELi (pronounced *hee*-*lee*) is a Windows Event Log parser written in Python. We have designed it to help incident responders rapidly ingest Windows logs from EVTX files into an Elasticsearch index.
+HELi (pronounced *hee*-*lee*) is a Windows Event Log parser written in Python. We have designed it to help incident responders rapidly ingest Windows Event Logs from EVTX files into an Elasticsearch index.
+
+#### Who is this for?
+
+HELi solves a specific problem that incident responders face when investigating incidents within Windows-based IT environments lacking a SIEM. 
+
+In these cases, the responder must quickly collect and analyse Windows Event Logs, sometimes in very large quantities. However, once collected, they are restricted in how they can view this information. The Windows Event Viewer is notoriously difficult to work with and PowerShell commands (which utilise the same backend engine) are just as slow. 
+
+Elasticsearch offers one of the best ways to search and interpret this information; however, existing tools designed to ingest EVTX files such as [Winlogbeat](https://www.elastic.co/products/beats/winlogbeat) or [evtxtoelk](https://github.com/dgunter/evtxtoelk) are generally designed to work in coordination with a SIEM or lack the speed required in an incident response scenario.
+
+HELi solves this problem by allowing the responder to utilise multiple cores to ingest EVTX files into an Elasticsearch index, thereby providing an accessible means of investigating Windows Events.
 
 ## Features
 
