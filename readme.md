@@ -130,12 +130,6 @@ For now, we only officially support HELi on Python2. It requires the following m
 - xmltodict
 - python-evtx
 
-## Acknowledgements
-
-HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
-
-All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
-
 ## Known Issues and Next Steps
 
 In most situations, HELi functions as expected. However, even such a small application as this is beget by small issues and desired improvements. 
@@ -163,15 +157,8 @@ We are investigating three design changes to increase the speed of this operatio
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
 
+## Acknowledgements
 
+HELi would not exist without the brilliant work by [@williballenthin](https://github.com/williballenthin) with the [python-evtx](https://github.com/williballenthin/python-evtx) module, which saved us from the considerable pain of having to develop our own parser for the EVTX file format.
 
-
-
-
-
-
-
-
-
-
-
+All credit to development goes to [@MDR-DannyR](https://github.com/MDR-DannyR) and [@Sankgreall](https://github.com/Sankgreall).
