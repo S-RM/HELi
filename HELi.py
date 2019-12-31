@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 
 # import required libraries
-import requests, json, argparse, xmltodict, os, sys
-from multiprocessing import Process, current_process, cpu_count, Manager, Pipe, Value, Queue, queues
+import requests, json, argparse, os, sys, re
+from multiprocessing import Process, current_process, cpu_count, Manager, Value, Queue, queues
 import threading
-from collections import OrderedDict
 from datetime import datetime
-import Evtx.Evtx as evtx
-from Evtx.Views import evtx_record_xml_view
+import Evtx.Evtx as evtx, xml.etree.ElementTree as ET
 import mmap
 import base64
 import time
@@ -135,7 +133,7 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
     end = (start + batch)
     count = 0
 
-    events = ""
+    JSONevents = ""
     logBufferLength = 0
     count_postedrecord = 0
 
@@ -145,71 +143,82 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
         try:
             
             while True:
+
+                record = next(records)
+     
                 if count >= start and count < end:
+
+                    count = count + 1
                     
                     # Then, proceed, we are in the sweet spot
-                    count = count + 1
-                    record = next(records)
-                    xml = evtx_record_xml_view(record)
-                    log_line = xmltodict.parse(xml)
+                    events = {"System": {}, "EventData": {}}
+                    root = ET.fromstring(record.xml())
 
-                    # Format the date field
-                    date = log_line.get("Event").get("System").get("TimeCreated").get("@SystemTime")
-                    if "." not in str(date):
-                        date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-                    else:
-                        date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
-                    log_line['@timestamp'] = str(date.isoformat())
-                    log_line["Event"]["System"]["TimeCreated"]["@SystemTime"] = str(date.isoformat())
-
-                    # Process the data field to be searchable
-                    data = ""
-                    if log_line.get("Event") is not None:
-                            data = log_line.get("Event")
-                            if log_line.get("Event").get("EventData") is not None:
-                                data = log_line.get("Event").get("EventData")
-                                if log_line.get("Event").get("EventData").get("Data") is not None:
-                                    data = log_line.get("Event").get("EventData").get("Data")
-                                    if isinstance(data, list):
-                                        data_vals = {}
-                                        for dataitem in data:
-                                            try:
-                                                if dataitem.get("@Name") is not None:
-                                                    data_vals[str(dataitem.get("@Name"))] = str(
-                                                        str(dataitem.get("#text")))
-                                            except:
-                                                pass
-                                        log_line["Event"]["EventData"]["Data"] = data_vals
-                                    else:
-                                        if isinstance(data, OrderedDict):
-                                            log_line["Event"]["EventData"]["RawData"] = json.dumps(data)
-                                        else:
-                                            log_line["Event"]["EventData"]["RawData"] = data.encode('utf-8')
-                                        del log_line["Event"]["EventData"]["Data"]
+                    for system_items in root[0]:
+                        tag = re.search("(?<=}).*", system_items.tag).group(0)
+                        events["System"][tag] = {}
+                        
+                        element_count = 0
+                        for key, value in system_items.attrib.iteritems():
+                            if key == "SystemTime":
+                                if "." not in str(value):
+                                    date = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
                                 else:
-                                    if isinstance(data, OrderedDict):
-                                        log_line["Event"]["RawData"] = json.dumps(data)
-                                    else:
-                                        log_line["Event"]["RawData"] = str(data)
-                                    del log_line["Event"]["EventData"]
+                                    date = datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
+                                date = str(date.isoformat())
+                                events["System"][tag][key] = date
                             else:
-                                if isinstance(data, OrderedDict):
-                                    log_line = dict(data)
-                                else:
-                                    log_line["RawData"] = str(data)
-                                    del log_line["Event"]
-                    else:
-                        pass
-                    events = events + '{"index": {}}\n'
-                    events = events + json.dumps(log_line) + "\n"
+                                events["System"][tag][key] = value
+
+                            element_count = element_count + 1
+                        
+                        if system_items.text is not None:
+                            if element_count == 0:
+                                events["System"][tag] = system_items.text
+                            else:
+                                events["System"][tag]["Value"] = system_items.text
+
+                    element_count = 0
+                    for data_items in root[1]:
+                        newData = {}
+                        tag = re.search("(?<=}).*", data_items.tag).group(0)
+                        unique_tag = tag + "__" + str(element_count)
+                        newData[unique_tag] = {}
+
+                        for key, value in data_items.attrib.iteritems():
+                            newData[unique_tag][key] = value
+                        newData[unique_tag]["Value"] = data_items.text
+                        events["EventData"].update(newData)
+                        element_count = element_count + 1
+
+                    event_data = {}
+
+                    for tag in events["EventData"]:
+                        # reconstruct tag
+                        real_tag = tag.split("__")[0]
+                        event_data[real_tag] = {}
+
+                    for tag in events["EventData"]:
+                        # reconstruct tag
+                        real_tag = tag.split("__")[0]
+
+                        if len(events["EventData"][tag]) == 2 and "Name" in events["EventData"][tag] and "Value" in events["EventData"][tag]:
+                            event_data[real_tag][events["EventData"][tag]["Name"]] = events["EventData"][tag]["Value"]
+                        elif len(events["EventData"][tag]) == 1 and "Value" in events["EventData"][tag]:
+                            event_data[real_tag] = events["EventData"][tag]["Value"]
+
+
+                    events["EventData"] = event_data
+
+                    JSONevents = JSONevents + '{"index": {}}\n'
+                    JSONevents = JSONevents + json.dumps(events) + "\n"
                     logBufferLength = logBufferLength + 1
-
-
+                    
                     # Dump log buffer when full
                     if logBufferLength >= int(logBufferSize):
                         count_postedrecord = count_postedrecord + logBufferSize
-                        dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
-                        events = ""
+                        dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
+                        JSONevents = ""
                         logBufferLength = 0
 
                 elif count >= end:
@@ -217,20 +226,21 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                     break
 
                 else:
-                    # Otherwise, we're obviously not there yet
                     count = count + 1
 
         except StopIteration:
             if logBufferLength > 0:
                 count_postedrecord = count_postedrecord + logBufferLength
-                dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
+                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
                 logBufferLength = 0
+                JSONevents = ""
 
         finally:
             if logBufferLength > 0:
                 count_postedrecord = count_postedrecord + logBufferLength
-                dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
+                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
                 logBufferLength = 0
+                JSONevents = ""
 
 def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token=""):
     if not debug:
@@ -690,7 +700,7 @@ if __name__ == "__main__":
     parser.add_argument("--buffer", "-b", default= 1000,help="Enter the number of records to store in buffer before sending to elasticsearch: --buffer 1000 or -b 1000.  This defaults to 1000")
     parser.add_argument("--index", "-i", default='projectx',help="Enter the index name for elasticsearch: --index projectx or -i projectx. This defaults to projectx")
     parser.add_argument("--nodes", "-n", default='127.0.0.1:9200',help="Enter the IP Address and Port for elasticsearch: --nodes 127.0.0.1:9200 or -n 127.0.0.1:9200. This can include multiple nodes using a comma ',' to seperate the nodes and wrapped in quotes e.g. '192.168.1.2:9200,192.168.1.3:9200'. This defaults to 127.0.0.1:9200")
-    parser.add_argument("--token", "-a", default='', help="Enter credentials in the format: USERNAME:PASSWORD")
+    parser.add_argument("--token", "-t", default='', help="Enter credentials in the format: USERNAME:PASSWORD")
     
     # Requires folder argument
     parser.add_argument("--pfolder", "-p", default='', help="For multi-file processing, if your files are organised in the format identifier/evtx_file, then you can list the folders that this script should process first in the format of identifier, identifier.")
