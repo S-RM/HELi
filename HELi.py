@@ -145,11 +145,14 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
         try:
             
             while True:
+
+                record = next(records)
+
                 if count >= start and count < end:
                     
                     # Then, proceed, we are in the sweet spot
                     count = count + 1
-                    record = next(records)
+                    
                     xml = evtx_record_xml_view(record)
                     log_line = xmltodict.parse(xml)
 
