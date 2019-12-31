@@ -22,7 +22,6 @@ Designed specifically to give incident responders visibility into vast amounts o
 - Supports production Elasticsearch environments with multiple nodes.
 - Recursive discovery of EVTX files within directories.
 - Can prioritise ingesting specific types of Event Logs, such as Security or System logs.
-- Validation of Event Logs submitted to Elasticsearch (i.e., checks that records in = records out).
 - Estimated processing times for each EVTX file.
 
 ## Requirements
