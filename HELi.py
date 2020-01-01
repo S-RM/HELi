@@ -146,11 +146,9 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
 
                 record = next(records)
                 
-                
                 if count >= start and count < end:
 
                     count = count + 1
-                    
                     # Then, proceed, we are in the sweet spot
                     events = {"System": {}, "EventData": {}}
                     root = ET.fromstring(record.xml())
@@ -188,6 +186,7 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
 
                         for key, value in data_items.attrib.iteritems():
                             newData[unique_tag][key] = value
+
                         newData[unique_tag]["Value"] = data_items.text
                         events["EventData"].update(newData)
                         element_count = element_count + 1
@@ -202,17 +201,52 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                     for tag in events["EventData"]:
                         # reconstruct tag
                         real_tag = tag.split("__")[0]
+        
 
-                        if len(events["EventData"][tag]) == 2 and "Name" in events["EventData"][tag] and "Value" in events["EventData"][tag]:
+                        if len(events["EventData"][tag]) == 2 and "Name" in events["EventData"][tag] and "Value" in events["EventData"][tag] and events["EventData"][tag]["Value"]:
                             event_data[real_tag][events["EventData"][tag]["Name"]] = events["EventData"][tag]["Value"]
+
+                        # This section is for when event logs are really unhelpful and just say <data>{value}</data>
+                        # without indicating what the field means (despite a field name showing up in the Windoes Event Viewer).
+                        # Basically, we can look these fields up manually, but for the meantime we need to add to some sort of dictionary
+                        # to facilitate querying.
+
+                        # TODO: We should add a database, maybe defined through a YAML file, that maps unknown event logs against known examples.
+                        # Would have to be done manually, but could be added to over time. Potentially useful to update when the occassion calls
+                        # for better insight into specific event ids.
                         elif len(events["EventData"][tag]) == 1 and "Value" in events["EventData"][tag]:
-                            event_data[real_tag] = events["EventData"][tag]["Value"]
 
+                            if real_tag == "Binary":
+                                event_data[real_tag] = events["EventData"][tag]["Value"]
 
+                            else:
+                                tmp = events["EventData"][tag]["Value"]
+
+                                if not tmp:
+                                    continue
+
+                                tmp = tmp.encode('utf-8')
+                                split_tmp = str(tmp).split("<string>")
+
+                                event_data[real_tag]['Strings'] = {}
+
+                                if len(split_tmp) > 2:
+                                    i = 0
+                                    for string in split_tmp:
+                                        string = string.strip().replace("</string>", "")
+                                        if string and string != "\n":
+                                            event_data[real_tag]['Strings'][i] = string.replace("</string>", "")
+                                            i = i + 1
+
+                                else:
+                                    event_data[real_tag]['Strings'][0] = tmp.replace("</string>", "").replace("<string>", "")
+
+    
                     events["EventData"] = event_data
 
                     JSONevents = JSONevents + '{"index": {}}\n'
-                    JSONevents = JSONevents + json.dumps(events) + "\n"
+                    JSONevents = JSONevents + json.dumps(events) + "\n" 
+
                     logBufferLength = logBufferLength + 1
                     
                     # Dump log buffer when full
@@ -221,6 +255,7 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                         dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token)
                         JSONevents = ""
                         logBufferLength = 0
+
 
                 elif count >= end:
                     # If we're bigger or equal to end, break
@@ -246,16 +281,14 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
 def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token=""):
     if not debug:
         # Web requests always work better in a thread. Waiting for network latency is silly.
-        post_thread = threading.Thread(target=postToElastic, args=(events, index, nodes,token))
-        post_thread.start()
+        postToElastic(events, index, nodes, token)
 
     # Report process in seperate thread. Main process should continue even if there are issues.
     report_thread = threading.Thread(target=report_progress, args=(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime,))
     report_thread.start()
 
     report_thread.join()
-    if not debug:
-        post_thread.join()
+
 
 
 def report_progress(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime):
@@ -348,6 +381,7 @@ def postToElastic(events, index, nodes, token=""):
     headers['content-type'] = "application/x-ndjson"
     if token != "":
         headers['Authorization'] = "Basic " + token
+
     while not success:
         try:
             # Post to current node
@@ -368,17 +402,11 @@ def postToElastic(events, index, nodes, token=""):
                break
 
         except Exception as e:
-            # Move to the next node; loop back if tried all available
-            if len(nodes) > 1:
-                currentNode = (currentNode + 1) % len(nodes)
             print str(e)
 
-
-    if not results.ok:
-        print json.dumps(results.json(), indent=4)
-
-    else:
-        pass
+    for item in results.json()['items']:
+        if item['index']['status'] != 201:
+            print json.dumps(item, indent=4)
 
 def validate_log_files(file_list):
 
@@ -412,7 +440,7 @@ def validate_log_files(file_list):
         except Exception as e:
             bad_files[bad_files_count] = {}
             bad_files[bad_files_count]['path'] = file_path
-            bad_files[bad_files_count]['reason'] = e + ": File may be corrupt, or there's something wrong with my code."
+            bad_files[bad_files_count]['reason'] = e.message + ": File may be corrupt, or there's something wrong with my code."
             bad_files_count = bad_files_count + 1
             MadeItThrough = False
         
@@ -612,11 +640,13 @@ def process_project(queue, args):
         # We need to calculate how many records to assign to each process
         record_batch = (RecordCount / args.cores)
         remainder = RecordCount - (record_batch * args.cores)
+        store_remainder = remainder
 
         # If record_batch is not zero, there is at least one record per task
+        Tasks = {}
+        start = 0
+
         if record_batch > 0:
-            Tasks = {}
-            start = 0
             for task in range(args.cores):
                 if remainder > 0:
                     task_batch = record_batch + 1
@@ -643,7 +673,7 @@ def process_project(queue, args):
                 start = start + task_batch
 
         print "There are " + str(RecordCount) + " logs in total."
-        print "Allocating an average of " + str(record_batch) + " logs per process."
+        print "Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder."
 
         proc = []
         # We need some variables to store some processing data
