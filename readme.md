@@ -1,6 +1,6 @@
 # HELi - Helpful Event Log Ingestor
 
-HELi (pronounced *hee*-*lee*) is a Windows Event Log parser written in Python. We have designed it to help incident responders rapidly send EVTX files to Elasticsearch.
+HELi (pronounced *hee*-*lee*) is a Windows Event Log parser written in Python. We have designed it to help incident responders rapidly send Windows Events from EVTX files to Elasticsearch.
 
 #### Who is this for?
 
