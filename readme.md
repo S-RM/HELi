@@ -30,7 +30,6 @@ Designed specifically to give incident responders visibility into vast amounts o
 For now, we only officially support HELi on Python2. It requires the following modules:
 
 - requests
-- xmltodict
 - python-evtx
 
 ## Acknowledgements
