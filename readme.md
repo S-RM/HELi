@@ -245,6 +245,7 @@ Reducing the processing time for Event Logs is a key objective of this project. 
 We are investigating two design changes to increase the speed of this operation:
 
 - **Moving HELi  to PyPy**, which initial testing has confirmed yields significant speed improvements. One key consideration here is that 64-bit PyPy is only supported on Linux systems, which means that a Windows-bound PyPy implementation of HELi could only support EVTX files that do not exceed 32-bit integers.
+
 - **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPy.
 
 ## Known Issues
@@ -256,6 +257,7 @@ We are investigating two design changes to increase the speed of this operation:
 - [ ] **Elasticsearch field limits easily exceeded**
 
   By default, Elasticsearch will only allow 1,000 unique fields within an index. Because there are so many fields across the different types of Event Logs it is very easy to exceed this limit.
+
 
   For now, this limit should be manually adjusted (refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings)), however, the longer term fix is to query the index to understand when we are approaching this limit and increase it on-the-fly.
 
@@ -270,6 +272,3 @@ We are investigating two design changes to increase the speed of this operation:
 - [ ] Move bulk uploads of Event Logs to a dedicated process to increase efficiency.
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
-
-
-
