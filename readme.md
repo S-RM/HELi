@@ -269,6 +269,7 @@ We are investigating two design changes to increase the speed of this operation:
 - [ ] Provide prettier and more useful logging, including as an external log file.
 - [ ] Choose how to handle various HTTP errors from Elasticsearch; terminate or continue?
 - [ ] Move bulk uploads of Event Logs to a dedicated process to increase efficiency.
+- [ ] Increase efficiency by processing small EVTX files in a single-core.
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Add support for timezone setting (currently assumes GMT +0).
 - [ ] Generally clean the code and remove some inefficiencies!
