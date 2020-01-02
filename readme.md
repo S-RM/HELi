@@ -18,7 +18,7 @@ Designed specifically to give incident responders visibility into vast amounts o
 
 - Fully multicore processing (tested up to 128 cores).
 - Parses Event Log XML into properly nested JSON.
-- Memory efficient; generally less than 40mb RAM required per core.
+- Memory efficient; generally between 30-40mb RAM required per core.
 - Supports production Elasticsearch environments with multiple nodes.
 - Recursive discovery of EVTX files within directories.
 - Can prioritise ingesting specific types of Event Logs, such as Security or System logs.
@@ -144,27 +144,130 @@ In most situations, HELi functions as expected. However, even such a small appli
 
 ## Limitations
 
+### Windows Event Logs
+
+Windows Event Logs are a complex and difficult beast to tame, and Microsoft seem to have done an incredible job of making them opaque and difficult to work with.
+
+Because of this, a tool like HELi that interprets the XML data behind the EVTX file format (and refer [here](http://www.dfrws.org/sites/default/files/session-files/paper-introducing_the_microsoft_vista_log_file_format.pdf) if you're interested in how these files are constructed) is only ever going to be as good as the data we're provided. This is a problem because Microsoft occasionally "cheat" with their Event Logs and leave important information out of the XML, instead opting to hard code that information into their Event Viewer.
+
+Taking an example, if we consider the Event Log below:
+
+```xml
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+	
+	<System>
+		<Provider Name="Windows Error Reporting" />
+		<EventID Qualifiers="0">1001</EventID>
+		<Level>4</Level>
+		<Task>0</Task>
+		<Keywords>0x80000000000000</Keywords>
+		<TimeCreated SystemTime="2019-09-19T04:37:30.000000000Z" />
+		<EventRecordID>408810</EventRecordID>
+		<Channel>Application</Channel>
+		<Computer>example.com</Computer>
+		<Security />
+	</System>
+	
+	<EventData>
+		<Data />
+		<Data>0</Data>
+		<Data>WindowsWcpOtherFailure3</Data>
+		<Data>Not available</Data>
+		<Data>0</Data>
+		<Data>6.3.9600</Data>
+		<Data>poq\poqsil.cpp</Data>
+		<Data>ReportAndOrStopProcessesForFile</Data>
+		<Data>2300</Data>
+		<Data>80070005</Data>
+		<Data>0xab102733</Data>
+		<Data />
+		<Data />
+		<Data />
+		<Data />
+		<Data>C:\Windows\Logs\CBS\CBS.log</Data>
+		<Data />
+		<Data />
+		<Data>0</Data>
+		<Data>2fb52af3-da97-11e9-80f2-8c98f7db42e7</Data>
+		<Data>262144</Data>
+		<Data />
+	</EventData>
+	
+</Event>
+```
+
+You will notice that the children of `EventData` do not contain a name or label to indicate what their value may represent. We therefore know that *262144* is a value within this Event Log, for instance, but we don't know what this could mean.
+
+In the Event Viewer, however, these labels are provided:
+
+```
+Fault bucket , type 0
+Event Name: WindowsWcpOtherFailure3
+Response: Not available
+Cab Id: 0
+
+Problem signature:
+P1: 6.3.9600
+P2: poq\poqsil.cpp
+P3: ReportAndOrStopProcessesForFile
+P4: 2300
+P5: 80070005
+P6: 0xab102733
+P7: 
+P8: 
+P9: 
+P10: 
+
+Attached files:
+C:\Windows\Logs\CBS\CBS.log
+
+These files may be available here:
+
+
+Analysis symbol: 
+Rechecking for solution: 0
+Report Id: 2fb52af3-da97-11e9-80f2-8c98f7db42e7
+Report Status: 262144
+```
+
+We can now see that the value *262144* is marked as the Report Status for this Event Log.
+
+#### What does this mean?
+
+The only way of resolving this issue would be to create an offline mapping of different Event Log types and reconcile them against this dataset before submitting them to Elasticsearch. However, this may negatively impact performance.
+
+As a workaround, we have chosen to submit the data fields without labels anyway. The data will still be available within Elasticsearch and can be queried, but you will probably have to manually compare the Event Log against known samples or other examples found online to understand the significance of the data.
+
+### Design Limitations
+
 Reducing the processing time for Event Logs is a key objective of this project. Our efforts to improve HELi's overall speed has hit a bottleneck with parsing the Event Log XML data into a dictionary with the `xmltodict` library, which is a time-intensive operation.
 
 We are investigating three design changes to increase the speed of this operation:
 
-- **Moving HELi  to PyPi**, which initial testing has confirmed yields significant speed improvements. One key consideration here is that 64-bit PyPi is only supported on Linux systems, which means that a Windows-bound PyPi implementation of HELi could only support EVTX files that do not exceed 32-bit integers.
-- **Develop our own Event Log XML parser in Python**, this would likely look like a stripped down XML parser that uses multiple XPath queries to construct a dictionary.
-- **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPi.
+- **Moving HELi  to PyPy*, which initial testing has confirmed yields significant speed improvements. One key consideration here is that 64-bit PyPy is only supported on Linux systems, which means that a Windows-bound PyPy implementation of HELi could only support EVTX files that do not exceed 32-bit integers.
+- **Develop our own XML queries in Python**, this would likely look like a stripped down XML parser that uses multiple XPath queries to construct a dictionary.
+- **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPy.
 
-## Issues to Fix
+## Known Issues
 
-- [ ] For an as-yet-unknown reason, the HELi processes sometimes idle during a project. Sending a Keyboard Interrupt (CTRL+C) resumes the processes without causing data loss.
+- [ ] **Processes occasionally idle**
+
+  For an as-yet-unknown reason, the HELi processes sometimes idle during a project. Sending a Keyboard Interrupt (CTRL+C) resumes the processes without causing data loss.
+
+- [ ] **Elasticsearch field limits easily exceeded**
+
+  By default, Elasticsearch will only allow 1,000 unique fields within an index. Because there are so many fields across the different types of Event Logs it is very easy to exceed this limit.
+
+  For now, this limit should be manually adjusted (refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings)), however, the longer term fix is to query the index to understand when we are approaching this limit and increase it on-the-fly.
 
 ## Improvements
 
-- [ ] Address speed improvements (refer to *Limitations*).
+- [x] ~~Address speed improvements (refer to *Limitations*).~~
+  - [ ] Release version with full PyPy support.
 - [ ] Improve argument parsing and incorporate validation.
+- [ ] Improve handling of empty or corrupted files.
 - [ ] Provide prettier and more useful logging, including as an external log file.
 - [ ] Choose how to handle various HTTP errors from Elasticsearch; terminate or continue?
-- [ ] Streamline uploading of Event Log data to Elasticsearch and investigate speed improvements.
+- [ ] Move bulk uploads of Event Logs to a dedicated process to increase efficiency.
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
-
-
-
