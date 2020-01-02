@@ -6,6 +6,7 @@ from multiprocessing import Process, current_process, cpu_count, Manager, Value,
 import threading
 from datetime import datetime
 import Evtx.Evtx as evtx, xml.etree.ElementTree as ET
+
 import mmap
 import base64
 import time
@@ -133,7 +134,9 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
     end = (start + batch)
     count = 0
 
+
     JSONevents = ""
+
     logBufferLength = 0
     count_postedrecord = 0
 
@@ -271,6 +274,7 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                 logBufferLength = 0
                 JSONevents = ""
 
+
         finally:
             if logBufferLength > 0:
                 count_postedrecord = count_postedrecord + logBufferLength
@@ -278,10 +282,12 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                 logBufferLength = 0
                 JSONevents = ""
 
+
 def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, token=""):
     if not debug:
         # Web requests always work better in a thread. Waiting for network latency is silly.
         postToElastic(events, index, nodes, token)
+
 
     # Report process in seperate thread. Main process should continue even if there are issues.
     report_thread = threading.Thread(target=report_progress, args=(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime,))
@@ -407,6 +413,7 @@ def postToElastic(events, index, nodes, token=""):
     for item in results.json()['items']:
         if item['index']['status'] != 201:
             print json.dumps(item, indent=4)
+
 
 def validate_log_files(file_list):
 
@@ -647,6 +654,7 @@ def process_project(queue, args):
         start = 0
 
         if record_batch > 0:
+
             for task in range(args.cores):
                 if remainder > 0:
                     task_batch = record_batch + 1
@@ -674,6 +682,7 @@ def process_project(queue, args):
 
         print "There are " + str(RecordCount) + " logs in total."
         print "Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder."
+
 
         proc = []
         # We need some variables to store some processing data
@@ -732,6 +741,7 @@ if __name__ == "__main__":
     parser.add_argument("--index", "-i", default='projectx',help="Enter the index name for elasticsearch: --index projectx or -i projectx. This defaults to projectx")
     parser.add_argument("--nodes", "-n", default='127.0.0.1:9200',help="Enter the IP Address and Port for elasticsearch: --nodes 127.0.0.1:9200 or -n 127.0.0.1:9200. This can include multiple nodes using a comma ',' to seperate the nodes and wrapped in quotes e.g. '192.168.1.2:9200,192.168.1.3:9200'. This defaults to 127.0.0.1:9200")
     parser.add_argument("--token", "-t", default='', help="Enter credentials in the format: USERNAME:PASSWORD")
+
     
     # Requires folder argument
     parser.add_argument("--pfolder", "-p", default='', help="For multi-file processing, if your files are organised in the format identifier/evtx_file, then you can list the folders that this script should process first in the format of identifier, identifier.")

@@ -258,6 +258,7 @@ We are investigating three design changes to increase the speed of this operatio
 
   By default, Elasticsearch will only allow 1,000 unique fields within an index. Because there are so many fields across the different types of Event Logs it is very easy to exceed this limit.
 
+
   For now, this limit should be manually adjusted (refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings)), however, the longer term fix is to query the index to understand when we are approaching this limit and increase it on-the-fly.
 
 ## Improvements
