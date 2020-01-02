@@ -185,7 +185,7 @@ Taking an example, if we consider the Event Log below:
 		<Data />
 		<Data />
 		<Data />
-		<Data>C:\Windows\Logs\CBS\CBS.log 			 C:\Windows\Logs\CBS\CbsPersist_20190913142158.cab C:\Windows\Logs\CBS\CbsPersist_20190906074608.cab C:\Windows\Logs\CBS\CbsPersist_20190830014134.cab C:\Windows\Logs\CBS\CbsPersist_20190817162222.cab C:\Windows\Logs\CBS\CbsPersist_20190813073100.cab C:\Windows\servicing\Sessions\Sessions.xml C:\Windows\servicing\Sessions\30764707_2447277294.xml C:\Windows\WinSxS\poqexec.log C:\Windows\Logs\CBS\FilterList.log</Data>
+		<Data>C:\Windows\Logs\CBS\CBS.log</Data>
 		<Data />
 		<Data />
 		<Data>0</Data>
@@ -221,15 +221,6 @@ P10:
 
 Attached files:
 C:\Windows\Logs\CBS\CBS.log
-C:\Windows\Logs\CBS\CbsPersist_20190913142158.cab
-C:\Windows\Logs\CBS\CbsPersist_20190906074608.cab
-C:\Windows\Logs\CBS\CbsPersist_20190830014134.cab
-C:\Windows\Logs\CBS\CbsPersist_20190817162222.cab
-C:\Windows\Logs\CBS\CbsPersist_20190813073100.cab
-C:\Windows\servicing\Sessions\Sessions.xml
-C:\Windows\servicing\Sessions\30764707_2447277294.xml
-C:\Windows\WinSxS\poqexec.log
-C:\Windows\Logs\CBS\FilterList.log
 
 These files may be available here:
 
