@@ -236,7 +236,7 @@ We can now see that the value *262144* is marked as the Report Status for this E
 
 The only way of resolving this issue would be to create an offline mapping of different Event Log types and reconcile them against this dataset before submitting them to Elasticsearch. However, this may negatively impact performance.
 
-As a workaround, we have chosen to submit the data fields without labels anyway. The data is still available within Elasticsearch and can be queried, but you will probably have to manually compare then against known event log samples or examples found online to understand the significance of the data.
+As a workaround, we have chosen to submit the data fields without labels anyway. The data will still be available within Elasticsearch and can be queried, but you will probably have to manually compare the Event Log against known samples or other examples found online to understand the significance of the data.
 
 ### Design Limitations
 
