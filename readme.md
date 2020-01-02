@@ -153,8 +153,7 @@ Because of this, a tool like HELi that interprets the XML data behind the EVTX f
 Taking an example, if we consider the Event Log below:
 
 ```xml
-<Event
-	xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
 	
 	<System>
 		<Provider Name="Windows Error Reporting" />
