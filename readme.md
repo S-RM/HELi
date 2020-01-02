@@ -270,4 +270,5 @@ We are investigating two design changes to increase the speed of this operation:
 - [ ] Choose how to handle various HTTP errors from Elasticsearch; terminate or continue?
 - [ ] Move bulk uploads of Event Logs to a dedicated process to increase efficiency.
 - [ ] Create an explicit mapping for Elasticsearch documents.
+- [ ] Add support for timezone setting (currently assumes GMT +0).
 - [ ] Generally clean the code and remove some inefficiencies!
