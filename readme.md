@@ -244,9 +244,9 @@ Reducing the processing time for Event Logs is a key objective of this project. 
 
 We are investigating three design changes to increase the speed of this operation:
 
-- **Moving HELi  to PyPi**, which initial testing has confirmed yields significant speed improvements. One key consideration here is that 64-bit PyPi is only supported on Linux systems, which means that a Windows-bound PyPi implementation of HELi could only support EVTX files that do not exceed 32-bit integers.
-- **Develop our own Event Log XML parser in Python**, this would likely look like a stripped down XML parser that uses multiple XPath queries to construct a dictionary.
-- **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPi.
+- **Moving HELi  to PyPy*, which initial testing has confirmed yields significant speed improvements. One key consideration here is that 64-bit PyPy is only supported on Linux systems, which means that a Windows-bound PyPy implementation of HELi could only support EVTX files that do not exceed 32-bit integers.
+- **Develop our own XML queries in Python**, this would likely look like a stripped down XML parser that uses multiple XPath queries to construct a dictionary.
+- **Develop our own Event Log XML parser in C++**. Parsing XML in C++ and calling the function from HELi would offer substantial speed improvements, most likely beyond that offered by PyPy.
 
 ## Known Issues
 
@@ -258,11 +258,13 @@ We are investigating three design changes to increase the speed of this operatio
 
   By default, Elasticsearch will only allow 1,000 unique fields within an index. Because there are so many fields across the different types of Event Logs it is very easy to exceed this limit.
 
+
   For now, this limit should be manually adjusted (refer [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings)), however, the longer term fix is to query the index to understand when we are approaching this limit and increase it on-the-fly.
 
 ## Improvements
 
-- [ ] Address speed improvements (refer to *Limitations*).
+- [x] ~~Address speed improvements (refer to *Limitations*).~~
+  - [ ] Release version with full PyPy support.
 - [ ] Improve argument parsing and incorporate validation.
 - [ ] Improve handling of empty or corrupted files.
 - [ ] Provide prettier and more useful logging, including as an external log file.
@@ -270,6 +272,3 @@ We are investigating three design changes to increase the speed of this operatio
 - [ ] Move bulk uploads of Event Logs to a dedicated process to increase efficiency.
 - [ ] Create an explicit mapping for Elasticsearch documents.
 - [ ] Generally clean the code and remove some inefficiencies!
-
-
-
