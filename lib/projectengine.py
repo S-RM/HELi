@@ -1,7 +1,8 @@
 
-import argparse, base64, os
+import argparse, base64, os, time
 from multiprocessing import cpu_count
 import evtxengine
+
 
 
 # Create argument parser
@@ -189,6 +190,161 @@ if args.pfolder is not "empty":
         exit()    
 
 
+def report_progress(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime):
+
+    report = ""
+
+    # If we can't acquire any of the variables, let's just quit this report.
+
+    if GlobalRecordCount.acquire(True, 1000): # Try for 1000 ms to acquire
+        # Now we can send the update
+        GlobalRecordCount.value = GlobalRecordCount.value + logBufferLength        
+        record_count = GlobalRecordCount.value
+    else:
+        return False
+
+    if GlobalPercentageComplete.acquire(True, 1000):
+        last_update = GlobalPercentageComplete.value
+    else:
+        return False
+
+    if GlobalTiming.acquire(True, 1000):
+        processing_time = GlobalTiming.value
+    else:
+        return False
+
+    if TooShortToTime.acquire(True, 1000):
+        TooShort = TooShortToTime.value
+    else:
+        return False
+
+    # If anything at all goes wrong, let's just make sure the lock is released
+    try:
+        # Calculate the percentage
+        percentage_float = (float(record_count) / float(num_items)) * 100
+        percentage = int(percentage_float)
+
+        # Percentage updates change frequency depending on how long we expect processing to last
+        if ((percentage > last_update) and (percentage <= last_update + 10) and (percentage_float > 5) and (num_items < 2000000)) or ((percentage > last_update) and (percentage <= last_update + 10) and (percentage_float > 1) and num_items >= 2000000) or (percentage >= 100): # greater than 3% to give us better data
+            # Output update about the proccessing
+            report = "Processing file: " + str(record_count) + " / " + str(num_items) + " (" + str(percentage) + "%)"
+            GlobalPercentageComplete.value = last_update + 10
+
+            # We can also do something clever and try to calculate an ETA for completion
+            # Calculate time delta
+            update_time = time.time()
+            delta = update_time - processing_time
+            left_to_complete = 100 / percentage_float
+            eta = (delta * left_to_complete) - (delta)
+            
+            if (TooShort == 0) or (TooShort == 1 and eta > 120):
+
+                if eta > 120 and num_items > 10000: # If we have less than 10,000, not worth it
+
+                    if eta >= 60 and eta < 3600:
+                        report = report + " -- Estimated time remaining: " + str(int(eta / 60)) + " minutes"
+                    
+                    elif eta >= 3600:
+                        report = report + " -- Estimated time remaining: " + str(round(eta / 3600, 2)) + " hours"
+
+                    else:
+                        report = report + " -- Estimated time remaining: " + str(int(eta)) + " seconds"
+
+                else:
+                    report = report + " -- Estimated time remaining:" + " a few minutes"
+                    TooShortToTime.value = 1
+
+    except Exception as e:
+        print "Error in reporting: " + str(e)
+
+    finally:
+        # In case anything goes wrong
+        # And now release the variable
+        if len(report) > 0:
+            print report
+        GlobalRecordCount.release()
+        GlobalPercentageComplete.release()
+        GlobalTiming.release()
+        TooShortToTime.release()
+
+
+def prepare_files_to_process(path, folder_priorities=[], log_priorities=[], strict_mode=False):
+
+    file_list = {}
+    file_list['count'] = 0
+    file_list['order'] = []
+
+    path = os.path.abspath(path) 
+
+    if len(folder_priorities) > 0:
+        for folder in folder_priorities:
+            # Construct path
+            temp_path = os.path.join(path, folder)
+            if len(log_priorities) > 0:
+                for log in log_priorities:
+                    log_path = os.path.join(temp_path, log)
+                    if os.path.exists(log_path):
+                        file_list['order'].append(log_path)
+
+            # For each folder, get list of files
+            else:
+                # We want all files within these folders
+                for temp_path, subdirs, names in os.walk(temp_path):
+                    for name in names:
+                        file_list['order'].append(os.path.join(temp_path, name))
+
+        # We now need to add all log priorities across all other folders not specificed, 
+        # as these logs still need to be prioritised
+        if len(log_priorities) > 0 and not strict_mode:
+            for log in log_priorities:
+                for temp_path, subdirs, names in os.walk(path):
+                    for subdir in subdirs:
+                            if os.path.exists(os.path.join(temp_path, subdir, log)) and os.path.join(temp_path, subdir, log) not in file_list['order']:
+                                file_list['order'].append(os.path.join(temp_path, subdir, log))
+
+        # FINALLY, we need to ensure that any remainding files within our prioritised folders are appended, before the rest of the stuff is.
+        # Only if strict_mode is on though, as otherwise we would only stick to the prioritised logs within each folder.
+        if not strict_mode:
+            for folder in folder_priorities:
+                # Construct path
+                temp_path = os.path.join(os.path.abspath(path), folder)
+                for temp_path, subdirs, names in os.walk(temp_path):
+                    for name in names:
+                        if os.path.exists(os.path.join(temp_path, name)) and os.path.join(temp_path, name) not in file_list['order']:
+                            file_list['order'].append(os.path.join(temp_path, name))
+
+    elif len(log_priorities) > 0:
+        for log in log_priorities:
+            for temp_path, subdirs, names in os.walk(path):
+                for subdir in subdirs:
+                        if os.path.exists(os.path.join(temp_path, subdir, log)) and os.path.join(temp_path, subdir, log) not in file_list['order']:
+                            file_list['order'].append(os.path.join(temp_path, subdir, log))
+
+    if strict_mode:
+        # We do nothing, as we've already got out list
+        pass
+    # Only remaining possability is that either logs and folders are not defined, or we need to add all the rest to this list.
+    # Either way, this logic encompasses both possabilities.
+    else:
+        # We add the remaining items to the list, ignoring paths we already have. 
+        # This list will be structured in the way os.walk() sorts the files, and will
+        # not follow on from any folder priorities, etc.
+        for path, subdirs, names in os.walk(path):
+            for name in names:
+                if not os.path.join(path, name) in file_list['order']:
+                    if name.endswith('.evtx'):
+                        file_list['order'].append(os.path.join(path, name))
+
+    # Awesome, we finally have a tasty list of nicely organised files,
+    # but now we need to check if these files are actually valid, real,
+    # and contain at least one log.
+    queue = evtxengine.validate_log_files(file_list['order'])
+    
+    # Now let's hand the deets back to the main function
+    return queue
+
+
+
 def initiate():
     
     folder_priorities = args.pfolder.split(',')
@@ -226,7 +382,7 @@ def initiate():
     elif args.directory:
         print "Folder Selected: " + str(os.path.abspath(args.directory))
 
-        queue = evtxengine.prepare_files_to_process(args.directory, folder_priorities, log_priorities, args.strict)
+        queue = prepare_files_to_process(args.directory, folder_priorities, log_priorities, args.strict)
         if queue['count'] <= 0:
             print "There are no log files within this directory that we could find."
             exit()
@@ -272,5 +428,8 @@ def initiate():
     print "----------------------------------------------------------"
     print ""
     print ""
+
+    # We minus one core, since we dedicate one solely for support functions
+    args.cores = args.cores - 1
 
     return {"queue" : queue, "args" : args}
