@@ -3,9 +3,9 @@
 # import required libraries
 
 from datetime import datetime
-import elastic
-import evtxengine
-import projectengine
+import lib.elastic as elastic
+import lib.evtxengine as evtxengine
+import lib.projectengine as projectengine
 import requests, json, argparse, os, sys, re
 from multiprocessing import Process, current_process, cpu_count, Manager, Value, Queue, queues
 import base64
