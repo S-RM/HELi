@@ -328,34 +328,32 @@ def validate_log_files(file_list):
     #Check to see if the evtx file is big enough to store data
     for file_path in file_list:
         MadeItThrough = True
-        file = open(file_path, "rb")
-        buffer = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
-        try:
-            header = evtx.FileHeader(buffer, 0x0) #All evtx files will have to have a header
-            if header.verify():
-                if header.first_chunk().first_record()._offset >= buffer.size():
+        with open(file_path, "rb") as file:
+            buffer = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
+            try:
+                header = evtx.FileHeader(buffer, 0x0) #All evtx files will have to have a header
+                if header.verify():
+                    if header.first_chunk().first_record()._offset >= buffer.size():
+                        bad_files[bad_files_count] = {}
+                        bad_files[bad_files_count]['path'] = file_path
+                        bad_files[bad_files_count]['reason'] = "File is too small to contain valid records."
+                        bad_files_count = bad_files_count + 1
+                        MadeItThrough = False
+                else:
                     bad_files[bad_files_count] = {}
                     bad_files[bad_files_count]['path'] = file_path
-                    bad_files[bad_files_count]['reason'] = "File is too small to contain valid records."
+                    bad_files[bad_files_count]['reason'] = "Failed EVTX header verification."
                     bad_files_count = bad_files_count + 1
                     MadeItThrough = False
-            else:
+            except Exception as e:
                 bad_files[bad_files_count] = {}
                 bad_files[bad_files_count]['path'] = file_path
-                bad_files[bad_files_count]['reason'] = "Failed EVTX header verification."
+                bad_files[bad_files_count]['reason'] = e.message + ": File may be corrupt, or there's something wrong with my code."
                 bad_files_count = bad_files_count + 1
                 MadeItThrough = False
-        except Exception as e:
-            bad_files[bad_files_count] = {}
-            bad_files[bad_files_count]['path'] = file_path
-            bad_files[bad_files_count]['reason'] = e.message + ": File may be corrupt, or there's something wrong with my code."
-            bad_files_count = bad_files_count + 1
-            MadeItThrough = False
-        
-        if MadeItThrough == True:
-            new_file_list.append(file_path)
-
-        file.close()
+            
+            if MadeItThrough == True:
+                new_file_list.append(file_path)
 
     return_data = {}
     return_data['count'] = len(new_file_list)
