@@ -355,6 +355,8 @@ def validate_log_files(file_list):
             if MadeItThrough == True:
                 new_file_list.append(file_path)
 
+        del buffer
+
     return_data = {}
     return_data['count'] = len(new_file_list)
     return_data['files_to_process'] = []
