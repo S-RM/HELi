@@ -88,9 +88,7 @@ def postToElastic(events, index, nodes, token=""):
     while not success:
         try:
             # Post to current node
-            results = requests.post("http://" + nodes[currentNode] + "/" + index + "/doc/_bulk", data=events, headers=headers)
-            print "http://" + nodes[currentNode] + "/" + index + "/doc/_bulk"
-            exit()
+            results = requests.post("http://" + nodes[currentNode] + "/" + index + "/_bulk", data=events, headers=headers)
             if results.status_code == 200:
                 success = True
 
