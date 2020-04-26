@@ -40,6 +40,9 @@ def thread_worker(item_queue, GlobalRecordCount, GlobalPercentageComplete, Globa
         try:
             item = item_queue.get() # Try for up to 1 sec to get data, else give up
 
+            if item['data']['token'] is None:
+                item['data']['token'] = ""
+
             if item == "STOP":
                 break
 
