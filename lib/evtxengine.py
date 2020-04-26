@@ -92,7 +92,7 @@ def count_records_in_batch(queue, file_path, receive_queue):
         
         # Check for up to one second if we can grab some data, else exit
         try:
-            chunk_offset = queue.get(True, 1)
+            chunk_offset = queue.get(False)
             
 
         except queues.Empty:
@@ -108,10 +108,11 @@ def count_records_in_batch(queue, file_path, receive_queue):
         chunk_record_count = 0
 
         # Map log file
-        log_file = open(file_path, 'rb')
-        buffer = mmap.mmap(log_file.fileno(), 0, access=mmap.ACCESS_READ)
+        with open(file_path, 'rb') as log_file: 
+            buffer = mmap.mmap(log_file.fileno(), 0, access=mmap.ACCESS_READ)
 
         Chunk = evtx.ChunkHeader(buffer, chunk_offset)
+        del buffer
         records = iter(Chunk.records())
         try:
             while True:
