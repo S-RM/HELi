@@ -85,14 +85,10 @@ def postToElastic(events, index, nodes, token=""):
     if token != "":
         headers['Authorization'] = "Basic " + token
 
-    print json.dumps(headers)
-    exit()
-
     while not success:
         try:
             # Post to current node
             results = requests.post("http://" + nodes[currentNode] + "/" + index + "/doc/_bulk", data=events, headers=headers)
-            exit()
 
             if results.status_code == 200:
                 success = True
