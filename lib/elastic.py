@@ -38,7 +38,7 @@ def thread_worker(item_queue, GlobalRecordCount, GlobalPercentageComplete, Globa
 
     while True:
         try:
-            item = item_queue.get(True, 1) # Try for up to 1 sec to get data, else give up
+            item = item_queue.get() # Try for up to 1 sec to get data, else give up
 
             if item == "STOP":
                 break
