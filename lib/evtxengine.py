@@ -11,77 +11,6 @@ from datetime import datetime
 import elastic
 import projectengine
 
-def chunk_and_count_evtx(log, cores, file_path):
-
-    # First, we divvy up Chunks to multiple cores so that we can 
-    # optimise creation of an index file of records, which will 
-    # allow us to assign equal numbers of records to each core.
-
-    # The first step, is to create an array of Chunks in the log
-    chunks = iter(log.chunks())
-    chunk_array = []
-    chunk_size = 0
-    try:
-        while True:
-            chunk = next(chunks)
-            chunk_array.append(chunk._offset)
-            chunk_size = chunk_size + 1
-    except StopIteration:
-        pass
- 
-    # Form the queue!
-    primary_queue = Queue()
-    # We have an array of chunks, now we can submit these to a queue
-    for chunk in chunk_array:
-        primary_queue.put(chunk)
-
-    # We also use a queue to recieve data
-    receive_queue = Queue()
-
-    # Array to store processes
-    procs = []
-    # We know how many processes we want to spawn
-    for task in range(0, int(cores)):
-        proc = Process(target=count_records_in_batch, args=(primary_queue,file_path,receive_queue), name=str(task))
-        procs.append(proc)
-        proc.start()
-
-    Index = {}
-    Index['chunks'] = {}
-    shutdown = False
-    stop_counter = []
-
-    while not shutdown:
-        try:
-            item = receive_queue.get() # We need to wait for at least something in the queue
-            
-            if item == "STOP":
-                stop_counter.append("STOP")
-                if len(stop_counter) >= cores:
-                    raise queues.Empty() # This will be the last one
-            else:
-                Index['chunks'].update(item)
-
-        except queues.Empty:
-            shutdown = True
-            break
-
-    # Queue is empty, we can join the processes
-    for proc in procs:
-        proc.join()
-
-    # TODO: Terminate any remaining processes       
-
-    record_count = 0
-    for chunk in Index['chunks']:
-        record_count = record_count + Index['chunks'][chunk]['count']
-    Index['total_records'] = record_count
-
-    if record_count < 1:
-        return False
-    else:
-        return Index['total_records']
-
 def count_records_in_batch(queue, file_path, receive_queue):
 
     shutdown = False
@@ -92,7 +21,7 @@ def count_records_in_batch(queue, file_path, receive_queue):
         
         # Check for up to one second if we can grab some data, else exit
         try:
-            chunk_offset = queue.get(False)
+            chunk_offset = queue.get(True, 1)
             
 
         except queues.Empty:
@@ -101,11 +30,6 @@ def count_records_in_batch(queue, file_path, receive_queue):
             receive_queue.put("STOP")
             shutdown = True
             break
-
-        if chunk_offset == None:
-            receive_queue.put("STOP")
-            shutdown = True
-            break  
 
         # Set default variables
         ChunkCount = {}
@@ -387,16 +311,28 @@ def process_project(queue, args):
         
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
+
+        # Get first chunk header 
+        total_records = 0
         with evtxObject as log:
-            RecordCount = chunk_and_count_evtx(log, args.cores, file_path)
-            if RecordCount is False:
-                print "No logs in file, skipping..."
-                i = i + 1
-                continue
+            chunks = iter(log.chunks())
+            try:
+                while True:
+                    chunk = next(chunks)
+                    if chunk.log_last_record_number() != 0 and chunk.log_first_record_number() != 0:
+                        records = (chunk.log_last_record_number() - chunk.log_first_record_number()) + 1
+                        total_records = total_records + records
+            except StopIteration:
+                pass
+
+        if total_records is 0:
+            print "No logs in file, skipping..."
+            i = i + 1
+            continue
         
         # We need to calculate how many records to assign to each process
-        record_batch = (RecordCount / args.cores)
-        remainder = RecordCount - (record_batch * args.cores)
+        record_batch = (total_records / args.cores)
+        remainder = total_records - (record_batch * args.cores)
         store_remainder = remainder
 
         # If record_batch is not zero, there is at least one record per task
@@ -430,7 +366,7 @@ def process_project(queue, args):
                 Tasks[task]['start'] = start
                 start = start + task_batch
 
-        print "There are " + str(RecordCount) + " logs in total."
+        print "There are " + str(total_records) + " logs in total."
         print "Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder."
 
 
@@ -483,7 +419,7 @@ def process_project(queue, args):
                             args=(
                                     Tasks[process],
                                     file_path,
-                                    RecordCount,
+                                    total_records,
                                     int(args.buffer),
                                     args.index,
                                     nodes,
