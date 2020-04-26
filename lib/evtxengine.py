@@ -92,7 +92,7 @@ def count_records_in_batch(queue, file_path, receive_queue):
         
         # Check for up to one second if we can grab some data, else exit
         try:
-            chunk_offset = queue.get(True, 0.5)
+            chunk_offset = queue.get(False)
             
 
         except queues.Empty:
@@ -101,6 +101,11 @@ def count_records_in_batch(queue, file_path, receive_queue):
             receive_queue.put("STOP")
             shutdown = True
             break
+
+        if chunk_offset == None:
+            receive_queue.put("STOP")
+            shutdown = True
+            break  
 
         # Set default variables
         ChunkCount = {}
