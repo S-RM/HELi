@@ -349,11 +349,11 @@ def initiate():
     
     folder_priorities = args.pfolder.split(',')
     folder_priorities = [folder.strip() for folder in folder_priorities]
-    folder_priorities = filter(None, folder_priorities)
+    folder_priorities = list(filter(None, folder_priorities))
 
     log_priorities = args.plog.split(',')
     log_priorities = [log.replace('.evtx', '').strip() for log in log_priorities]
-    log_priorities = filter(None, log_priorities)
+    log_priorities = list(filter(None, log_priorities))
     log_priorities = [log + '.evtx' for log in log_priorities]
 
     print("")

@@ -189,22 +189,26 @@ def process_project(queue, args):
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
 
-
-
         # Get first chunk header 
         total_records = 0
         with evtxObject as log:
             chunks = iter(log.chunks())
-            try:
-                while True:
-                    chunk = next(chunks)
-                    if chunk.log_last_record_number() != 0 and chunk.log_first_record_number() != 0:
-                        records = (chunk.log_last_record_number() - chunk.log_first_record_number()) + 1
-                        total_records = total_records + records
-            except StopIteration:
-                pass
+            fh = log.get_file_header()
+            # Get last record number
+            last_chunk_number = fh.chunk_count()
+            last = fh.next_record_number() - 1
 
+            # Get first record (oldest chunk)
+            oldest = fh.oldest_chunk() + 1
+            count = 0
+            while True:
+                chunk = next(chunks)
+                count = count + 1
+                if count == oldest:
+                    first = chunk.log_first_record_number()
+                    break
 
+        total_records = (last - first) + 1 
 
         if total_records == 0:
             print("No logs in file, skipping...")
@@ -212,11 +216,9 @@ def process_project(queue, args):
             continue
         
         # We need to calculate how many records to assign to each process
-        record_batch = (total_records / args.cores)
+        record_batch = (total_records // args.cores)
         remainder = total_records - (record_batch * args.cores)
         store_remainder = remainder
-
-
 
         # If record_batch is not zero, there is at least one record per task
         Tasks = {}
