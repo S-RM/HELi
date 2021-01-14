@@ -8,8 +8,8 @@ import base64
 import time
 import Evtx.Evtx as evtx, xml.etree.ElementTree as ET
 from datetime import datetime
-import elastic
-import projectengine
+import lib.elastic
+import lib.projectengine
 
 def count_records_in_batch(queue, file_path, receive_queue):
 
@@ -303,11 +303,11 @@ def process_project(queue, args):
     nodes = args.nodes.replace(" ", "").split(',')
     i = 0
     for file_path in queue['files_to_process']:
-        print ""
-        print "### File " + str(i + 1) + " of " + str(queue['count']) + ": " + file_path
+        print("")
+        print("### File " + str(i + 1) + " of " + str(queue['count']) + ": " + file_path)
         start_time = datetime.now()
-        print "### " + str(start_time)
-        print ""
+        print("### " + str(start_time))
+        print("")
         
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
@@ -325,8 +325,8 @@ def process_project(queue, args):
             except StopIteration:
                 pass
 
-        if total_records is 0:
-            print "No logs in file, skipping..."
+        if total_records == 0:
+            print("No logs in file, skipping...")
             i = i + 1
             continue
         
@@ -366,8 +366,8 @@ def process_project(queue, args):
                 Tasks[task]['start'] = start
                 start = start + task_batch
 
-        print "There are " + str(total_records) + " logs in total."
-        print "Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder."
+        print("There are " + str(total_records) + " logs in total.")
+        print("Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder.")
 
 
         procs = []
@@ -448,9 +448,9 @@ def process_project(queue, args):
         i = i + 1
         end_time = datetime.now()
         duration = end_time - start_time
-        print ""
-        print "File " + str(i) + " completed in: " + str(duration)      
-        print ""      
+        print("")
+        print("File " + str(i) + " completed in: " + str(duration))   
+        print("")
 
 
 

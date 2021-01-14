@@ -1,7 +1,7 @@
 
 import argparse, base64, os, time
 from multiprocessing import cpu_count
-import evtxengine
+import lib.evtxengine
 
 
 
@@ -163,28 +163,28 @@ if args.token != "":
 
 # Check we're dealing with a valid file path before continuing
 if args.file and not os.path.exists(args.file):
-    print "The file path you specified does not exist."
-    print args.file
+    print("The file path you specified does not exist.")
+    print(args.file)
     exit()
 
 # Check we're dealing with a valid folder path before continuing
 if args.directory and not os.path.exists(args.directory):
-    print "The folder path you specified does not exist."
-    print args.directory
+    print("The folder path you specified does not exist.")
+    print(args.directory)
     # TODO: Check there is at least one file here
     exit()
 
 if args.strict:
     if not args.plog and not args.pfolder:
-        print "You cannot enable --strict mode unless --plog and/or --pfolder are specified."
+        print("You cannot enable --strict mode unless --plog and/or --pfolder are specified.")
         exit()
 
-if args.plog is not "empty":
+if args.plog != "empty":
     if args.file:
-        print "--plog cannt be set in file mode."
+        print("--plog cannt be set in file mode.")
         exit()
 
-if args.pfolder is not "empty":
+if args.pfolder != "empty":
     if args.file:
         "--pfolder cannt be set in file mode."
         exit()    
@@ -255,13 +255,13 @@ def report_progress(GlobalRecordCount, logBufferLength, num_items, GlobalPercent
                     TooShortToTime.value = 1
 
     except Exception as e:
-        print "Error in reporting: " + str(e)
+        print("Error in reporting: " + str(e))
 
     finally:
         # In case anything goes wrong
         # And now release the variable
         if len(report) > 0:
-            print report
+            print(report)
         GlobalRecordCount.release()
         GlobalPercentageComplete.release()
         GlobalTiming.release()
@@ -356,78 +356,78 @@ def initiate():
     log_priorities = filter(None, log_priorities)
     log_priorities = [log + '.evtx' for log in log_priorities]
 
-    print ""
-    print ""
-    print "----------------------------------------------------------"
-    print "----------------------------------------------------------"
-    print ""
-    print "###########################"
-    print "#   General Information   #"
-    print "###########################"
-    print "Number of Cores: " + str(args.cores)
-    print "Buffer Size: " + str(args.buffer)
-    print "Index Name: " + str(args.index)
-    print "Nodes: " + str(args.nodes)
+    print("")
+    print("")
+    print("----------------------------------------------------------")
+    print("----------------------------------------------------------")
+    print("")
+    print("###########################")
+    print("#   General Information   #")
+    print("###########################")
+    print("Number of Cores: " + str(args.cores))
+    print("Buffer Size: " + str(args.buffer))
+    print("Index Name: " + str(args.index))
+    print("Nodes: " + str(args.nodes))
     if args.debug:
-        print "Debug Mode: True"
-    print ""
-    print "###########################"
-    print "#   Project Information   #"
-    print "###########################"
+        print("Debug Mode: True")
+    print("")
+    print("###########################")
+    print("#   Project Information   #")
+    print("###########################")
 
     if args.file:
-        print "File Selected: " + str(os.path.abspath(args.file))
+        print("File Selected: " + str(os.path.abspath(args.file)))
         queue = evtxengine.validate_log_files([os.path.abspath(args.file)])
 
     elif args.directory:
-        print "Folder Selected: " + str(os.path.abspath(args.directory))
+        print("Folder Selected: " + str(os.path.abspath(args.directory)))
 
         queue = prepare_files_to_process(args.directory, folder_priorities, log_priorities, args.strict)
         if queue['count'] <= 0:
-            print "There are no log files within this directory that we could find."
+            print("There are no log files within this directory that we could find.")
             exit()
 
-        print "Total number of files: " + str(queue['count'])
+        print("Total number of files: " + str(queue['count']))
      
         if args.strict:
-            print "Strict Mode: True"
+            print("Strict Mode: True")
         else:
-            print "Strict Mode: False" 
+            print("Strict Mode: False") 
 
         if args.plog != "":
-            print "Prioritising these logs(s):"
+            print("Prioritising these logs(s):")
             for log in log_priorities:
-                print "    - " + log
+                print("    - " + log)
 
         if args.pfolder != "":
-            print "Prioritising these folder(s):"
+            print("Prioritising these folder(s):")
             for folder in folder_priorities:
-                print "    - " + folder.upper()
+                print("    - " + folder.upper())
 
         if args.debug:
-            print "List of files in order of processing:"
+            print("List of files in order of processing:")
             for name in queue['files_to_process']:
-                print "    - " + name
+                print("    - " + name)
 
         if len(queue['errors']) > 0:
-            print ""
-            print "WARNING: We identified errors in " + str(len(queue['errors'])) + " EVTX file(s). This is often because log files are empty or corrupted."
+            print("")
+            print("WARNING: We identified errors in " + str(len(queue['errors'])) + " EVTX file(s). This is often because log files are empty or corrupted.")
             if args.debug:
-                print "         If you continue, these files will be ignored. See below for detailed information."
-                print ""
-                print "Detailed Errors:"
-                print ""
+                print("         If you continue, these files will be ignored. See below for detailed information.")
+                print("")
+                print("Detailed Errors:")
+                print("")
                 for error in queue['errors']:
-                    print str(error) + " -    " + "Path: " + queue['errors'][error]['path']
-                    print "       Reason: " + queue['errors'][error]['reason']
+                    print(str(error) + " -    " + "Path: " + queue['errors'][error]['path'])
+                    print("       Reason: " + queue['errors'][error]['reason'])
             else:
-                print "         If you continue, these files will be ignored. Run this script in debug mode to see further details."
+                print("         If you continue, these files will be ignored. Run this script in debug mode to see further details.")
 
-    print ""
-    print "----------------------------------------------------------"
-    print "----------------------------------------------------------"
-    print ""
-    print ""
+    print("")
+    print("----------------------------------------------------------")
+    print("----------------------------------------------------------")
+    print("")
+    print("")
 
     # We minus one core, since we dedicate one solely for support functions
     args.cores = args.cores - 1

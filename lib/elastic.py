@@ -2,7 +2,7 @@
 
 import requests, json
 from multiprocessing import Queue, queues
-import projectengine
+import lib.projectengine
 import threading
 
 def core_posting_worker(queue, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime, thread_count=2):
@@ -93,18 +93,18 @@ def postToElastic(events, index, nodes, token=""):
                     count = count + 1
                     pass
                 else:
-                    print json.dumps(results.json(), indent=4)
+                    print(json.dumps(results.json(), indent=4))
                     break
             else:
-               print json.dumps(results.json(), indent=4)
+               print(json.dumps(results.json(), indent=4))
                break
 
         except Exception as e:
-            print str(e)
+            print(str(e))
 
     for item in results.json()['items']:
         if item['index']['status'] != 201:
-            print json.dumps(item, indent=4)
+            print(json.dumps(item, indent=4))
 
 
 
