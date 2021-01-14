@@ -1,7 +1,7 @@
 
 import argparse, base64, os, time
 from multiprocessing import cpu_count
-import lib.evtxengine
+import lib.evtxengine as evtxengine
 
 
 
@@ -159,7 +159,7 @@ args = parser.parse_args()
 if args.token != "":
     # TODO: Check it is in right format
     args.token = args.token.strip()
-    args.token = base64.b64encode(args.token)
+    args.token = base64.b64encode(args.token.encode('ascii'))
 
 # Check we're dealing with a valid file path before continuing
 if args.file and not os.path.exists(args.file):
@@ -184,7 +184,7 @@ if args.plog != "empty":
         print("--plog cannt be set in file mode.")
         exit()
 
-if args.pfolder != "empty":
+if args.pfolder is not "empty":
     if args.file:
         "--pfolder cannt be set in file mode."
         exit()    
@@ -383,6 +383,7 @@ def initiate():
         print("Folder Selected: " + str(os.path.abspath(args.directory)))
 
         queue = prepare_files_to_process(args.directory, folder_priorities, log_priorities, args.strict)
+
         if queue['count'] <= 0:
             print("There are no log files within this directory that we could find.")
             exit()

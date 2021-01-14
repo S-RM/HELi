@@ -2,7 +2,7 @@
 
 import requests, json
 from multiprocessing import Queue, queues
-import lib.projectengine
+import lib.projectengine as projectengine
 import threading
 
 def core_posting_worker(queue, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime, thread_count=2):
@@ -65,7 +65,7 @@ def thread_worker(item_queue, GlobalRecordCount, GlobalPercentageComplete, Globa
         except queues.Empty:
             pass
 
-def postToElastic(events, index, nodes, token=""):
+def postToElastic(events, index, nodes, token=b""):
 
     # Start the node fault-tolerance
     currentNode = 0
@@ -77,12 +77,12 @@ def postToElastic(events, index, nodes, token=""):
     headers = {}
     headers['content-type'] = "application/x-ndjson"
     if token != "":
-        headers['Authorization'] = "Basic " + token
+        headers['Authorization'] = "Basic " + token.decode('ascii')
 
     while not success:
         try:
             # Post to current node
-            results = requests.post("http://" + nodes[currentNode] + "/" + index + "/doc/_bulk", data=events, headers=headers)
+            results = requests.post(nodes[currentNode] + "/" + index + "/_bulk", data=events, headers=headers)
 
             if results.status_code == 200:
                 success = True

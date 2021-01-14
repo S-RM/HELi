@@ -11,7 +11,6 @@ from multiprocessing import Process, current_process, cpu_count, Manager, Value,
 import base64
 
 if __name__ == "__main__":
-
     procs = []
 
     # Display project banner, list configurations, and receive queue
@@ -21,11 +20,10 @@ if __name__ == "__main__":
 
     start_datetime = datetime.now()  
 
-    raw_input("Project initiated, press Enter to begin processing...")
-
     print("")
     print("### Project Starting ###")
     print("")
+    
     evtxengine.process_project(queue, args)
     end_datetime = datetime.now()
     duration_datetime = end_datetime - start_datetime

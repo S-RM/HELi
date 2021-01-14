@@ -8,8 +8,10 @@ import base64
 import time
 import Evtx.Evtx as evtx, xml.etree.ElementTree as ET
 from datetime import datetime
-import lib.elastic
-import lib.projectengine
+import lib.elastic as elastic
+import lib.projectengine as projectengine
+from evtx import PyEvtxParser
+
 
 def count_records_in_batch(queue, file_path, receive_queue):
 
@@ -68,148 +70,51 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
 
     logBufferLength = 0
     count_postedrecord = 0
-
-    with evtx.Evtx(filename) as log:
-        records = iter(log.records())
         
-        try:
-            
-            while True:
+    try:        
+        parser = PyEvtxParser(filename)
+        for record in parser.records_json():
 
-                record = next(records)
-                
-                if count >= start and count < end:
+            if count >= start and count < end:
 
-                    count = count + 1
-                    # Then, proceed, we are in the sweet spot
-                    events = {"System": {}, "EventData": {}}
-                    root = ET.fromstring(record.xml())
+                count = count + 1
+                logBufferLength = logBufferLength + 1
+                event = {}
 
-                    for system_items in root[0]:
-                        tag = re.search("(?<=}).*", system_items.tag).group(0)
-                        events["System"][tag] = {}
-                        
-                        element_count = 0
-                        for key, value in system_items.attrib.iteritems():
-                            if key == "SystemTime":
-                                if "." not in str(value):
-                                    date = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-                                else:
-                                    date = datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
-                                date = str(date.isoformat())
-                                events["System"][tag][key] = date
-                            else:
-                                events["System"][tag][key] = value
+                record = json.loads(record['data'])
+                JSONevents = JSONevents + '{"index": {}}\n'
+                JSONevents = JSONevents + json.dumps(record) + "\n" 
 
-                            element_count = element_count + 1
-                        
-                        if system_items.text is not None:
-                            if element_count == 0:
-                                events["System"][tag] = system_items.text
-                            else:
-                                events["System"][tag]["Value"] = system_items.text
-
-                    element_count = 0
-                    for data_items in root[1]:
-                        newData = {}
-                        tag = re.search("(?<=}).*", data_items.tag).group(0)
-                        unique_tag = tag + "__" + str(element_count)
-                        newData[unique_tag] = {}
-
-                        for key, value in data_items.attrib.iteritems():
-                            newData[unique_tag][key] = value
-
-                        newData[unique_tag]["Value"] = data_items.text
-                        events["EventData"].update(newData)
-                        element_count = element_count + 1
-
-                    event_data = {}
-
-                    for tag in events["EventData"]:
-                        # reconstruct tag
-                        real_tag = tag.split("__")[0]
-                        event_data[real_tag] = {}
-
-                    for tag in events["EventData"]:
-                        # reconstruct tag
-                        real_tag = tag.split("__")[0]
-        
-
-                        if len(events["EventData"][tag]) == 2 and "Name" in events["EventData"][tag] and "Value" in events["EventData"][tag] and events["EventData"][tag]["Value"]:
-                            event_data[real_tag][events["EventData"][tag]["Name"]] = events["EventData"][tag]["Value"]
-
-                        # This section is for when event logs are really unhelpful and just say <data>{value}</data>
-                        # without indicating what the field means (despite a field name showing up in the Windoes Event Viewer).
-                        # Basically, we can look these fields up manually, but for the meantime we need to add to some sort of dictionary
-                        # to facilitate querying.
-
-                        # TODO: We should add a database, maybe defined through a YAML file, that maps unknown event logs against known examples.
-                        # Would have to be done manually, but could be added to over time. Potentially useful to update when the occassion calls
-                        # for better insight into specific event ids.
-                        elif len(events["EventData"][tag]) == 1 and "Value" in events["EventData"][tag]:
-
-                            if real_tag == "Binary":
-                                event_data[real_tag] = events["EventData"][tag]["Value"]
-
-                            else:
-                                tmp = events["EventData"][tag]["Value"]
-
-                                if not tmp:
-                                    continue
-
-                                tmp = tmp.encode('utf-8')
-                                split_tmp = str(tmp).split("<string>")
-
-                                event_data[real_tag]['Strings'] = {}
-
-                                if len(split_tmp) > 2:
-                                    i = 0
-                                    for string in split_tmp:
-                                        string = string.strip().replace("</string>", "")
-                                        if string and string != "\n":
-                                            event_data[real_tag]['Strings'][i] = string.replace("</string>", "")
-                                            i = i + 1
-
-                                else:
-                                    event_data[real_tag]['Strings'][0] = tmp.replace("</string>", "").replace("<string>", "")
-
-    
-                    events["EventData"] = event_data
-
-                    JSONevents = JSONevents + '{"index": {}}\n'
-                    JSONevents = JSONevents + json.dumps(events) + "\n" 
-
-                    logBufferLength = logBufferLength + 1
-                    
-                    # Dump log buffer when full
-                    if logBufferLength >= int(logBufferSize):
-                        count_postedrecord = count_postedrecord + logBufferSize
-                        dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-                        JSONevents = ""
-                        logBufferLength = 0
+               
+                # Dump log buffer when full
+                if logBufferLength >= int(logBufferSize):
+                    count_postedrecord = count_postedrecord + logBufferSize
+                    dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+                    JSONevents = ""
+                    logBufferLength = 0
 
 
-                elif count >= end:
-                    # If we're bigger or equal to end, break
-                    break
+            elif count >= end:
+                # If we're bigger or equal to end, break
+                break
 
-                else:
-                    count = count + 1
+            else:
+                count = count + 1
 
-        except StopIteration:
-            if logBufferLength > 0:
-                count_postedrecord = count_postedrecord + logBufferLength
-                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-                logBufferLength = 0
-                JSONevents = ""
+    except Exception:
+        if logBufferLength > 0:
+            count_postedrecord = count_postedrecord + logBufferLength
+            dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+            logBufferLength = 0
+            JSONevents = ""
 
 
-        finally:
-            if logBufferLength > 0:
-                count_postedrecord = count_postedrecord + logBufferLength
-                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-                logBufferLength = 0
-                JSONevents = ""
+    finally:
+        if logBufferLength > 0:
+            count_postedrecord = count_postedrecord + logBufferLength
+            dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+            logBufferLength = 0
+            JSONevents = ""
             
 
 
@@ -257,35 +162,7 @@ def validate_log_files(file_list):
 
     #Check to see if the evtx file is big enough to store data
     for file_path in file_list:
-        MadeItThrough = True
-        with open(file_path, "rb") as file:
-            buffer = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
-        try:
-            header = evtx.FileHeader(buffer, 0x0) #All evtx files will have to have a header
-            if header.verify():
-                if header.first_chunk().first_record()._offset >= buffer.size():
-                    bad_files[bad_files_count] = {}
-                    bad_files[bad_files_count]['path'] = file_path
-                    bad_files[bad_files_count]['reason'] = "File is too small to contain valid records."
-                    bad_files_count = bad_files_count + 1
-                    MadeItThrough = False
-            else:
-                bad_files[bad_files_count] = {}
-                bad_files[bad_files_count]['path'] = file_path
-                bad_files[bad_files_count]['reason'] = "Failed EVTX header verification."
-                bad_files_count = bad_files_count + 1
-                MadeItThrough = False
-        except Exception as e:
-            bad_files[bad_files_count] = {}
-            bad_files[bad_files_count]['path'] = file_path
-            bad_files[bad_files_count]['reason'] = e.message + ": File may be corrupt, or there's something wrong with my code."
-            bad_files_count = bad_files_count + 1
-            MadeItThrough = False
-        
-        if MadeItThrough == True:
-            new_file_list.append(file_path)
-
-        del buffer
+        new_file_list.append(file_path)
 
     return_data = {}
     return_data['count'] = len(new_file_list)
@@ -312,6 +189,8 @@ def process_project(queue, args):
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
 
+
+
         # Get first chunk header 
         total_records = 0
         with evtxObject as log:
@@ -325,6 +204,8 @@ def process_project(queue, args):
             except StopIteration:
                 pass
 
+
+
         if total_records == 0:
             print("No logs in file, skipping...")
             i = i + 1
@@ -334,6 +215,8 @@ def process_project(queue, args):
         record_batch = (total_records / args.cores)
         remainder = total_records - (record_batch * args.cores)
         store_remainder = remainder
+
+
 
         # If record_batch is not zero, there is at least one record per task
         Tasks = {}
@@ -368,7 +251,6 @@ def process_project(queue, args):
 
         print("There are " + str(total_records) + " logs in total.")
         print("Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder.")
-
 
         procs = []
         proc = []
