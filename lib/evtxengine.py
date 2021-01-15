@@ -71,50 +71,35 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
     logBufferLength = 0
     count_postedrecord = 0
         
-    try:        
-        parser = PyEvtxParser(filename)
-        for record in parser.records_json():
+    parser = PyEvtxParser(filename)
+    for record in parser.records_json():
 
-            if count >= start and count < end:
+            count = count + 1
+            logBufferLength = logBufferLength + 1
+            event = {}
 
-                count = count + 1
-                logBufferLength = logBufferLength + 1
-                event = {}
+            record = json.loads(record['data'])
 
-                record = json.loads(record['data'])
-                JSONevents = JSONevents + '{"index": {}}\n'
-                JSONevents = JSONevents + json.dumps(record) + "\n" 
+            if isinstance(record['Event']['System']['EventID'], int):
+                eventid = record['Event']['System']['EventID']
+                record['Event']['System']['EventID'] = {}
+                record['Event']['System']['EventID']['#text'] = eventid 
 
-               
-                # Dump log buffer when full
-                if logBufferLength >= int(logBufferSize):
-                    count_postedrecord = count_postedrecord + logBufferSize
-                    dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-                    JSONevents = ""
-                    logBufferLength = 0
+            JSONevents = JSONevents + '{"index": {}}\n'
+            JSONevents = JSONevents + json.dumps(record) + "\n" 
+            
+            # Dump log buffer when full
+            if logBufferLength >= int(logBufferSize):
+                count_postedrecord = count_postedrecord + logBufferSize
+                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+                JSONevents = ""
+                logBufferLength = 0
 
-
-            elif count >= end:
-                # If we're bigger or equal to end, break
-                break
-
-            else:
-                count = count + 1
-
-    except Exception:
-        if logBufferLength > 0:
-            count_postedrecord = count_postedrecord + logBufferLength
-            dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-            logBufferLength = 0
-            JSONevents = ""
-
-
-    finally:
-        if logBufferLength > 0:
-            count_postedrecord = count_postedrecord + logBufferLength
-            dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
-            logBufferLength = 0
-            JSONevents = ""
+    if logBufferLength > 0:
+        count_postedrecord = count_postedrecord + logBufferLength
+        dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+        logBufferLength = 0
+        JSONevents = ""
             
 
 
