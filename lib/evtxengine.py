@@ -12,52 +12,6 @@ import lib.elastic as elastic
 import lib.projectengine as projectengine
 from evtx import PyEvtxParser
 
-
-def count_records_in_batch(queue, file_path, receive_queue):
-
-    shutdown = False
-    count = 0
-    while not shutdown:
-
-        count = count + 1
-        
-        # Check for up to one second if we can grab some data, else exit
-        try:
-            chunk_offset = queue.get(True, 1)
-            
-
-        except queues.Empty:
-            # Queue is most likely empty
-            # Send shutdown command
-            receive_queue.put("STOP")
-            shutdown = True
-            break
-
-        # Set default variables
-        ChunkCount = {}
-        ChunkCount[chunk_offset] = {}
-        chunk_record_count = 0
-
-        # Map log file
-        with open(file_path, 'rb') as log_file: 
-            buffer = mmap.mmap(log_file.fileno(), 0, access=mmap.ACCESS_READ)
-
-        Chunk = evtx.ChunkHeader(buffer, chunk_offset)
-        del buffer
-        records = iter(Chunk.records())
-        try:
-            while True:
-                next(records)
-                chunk_record_count = chunk_record_count + 1
-        except StopIteration:
-            ChunkCount[chunk_offset]['count'] = chunk_record_count
-
-        if chunk_record_count > 0:
-            receive_queue.put(ChunkCount)     
-
-    return True
-        
-
 def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token=""):
 
     start = task['start']
@@ -205,11 +159,12 @@ def process_project(queue, args):
 
         total_records = (last - first) + 1 
 
-        if total_records == 0:
+        if total_records == 0 or last == 0:
             print("No logs in file, skipping...")
             i = i + 1
             continue
-        
+
+       
         # We need to calculate how many records to assign to each process
         record_batch = (total_records // args.cores)
         remainder = total_records - (record_batch * args.cores)
@@ -246,8 +201,11 @@ def process_project(queue, args):
                 Tasks[task]['start'] = start
                 start = start + task_batch
 
-        print("There are " + str(total_records) + " logs in total.")
-        print("Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder.")
+        if total_records > 0:
+            print("There are " + str(total_records) + " logs in total.")
+            print("Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder.")
+        else:
+            print("Unable to count file - but we will process it anyway!")
 
         procs = []
         proc = []
