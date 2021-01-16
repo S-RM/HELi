@@ -85,9 +85,20 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
                 record['Event']['System']['EventID'] = {}
                 record['Event']['System']['EventID']['#text'] = eventid 
 
+            # Same thing with their Data field
+            try:
+                if isinstance(record['Event']['EventData']['Data'], str):
+                    tmp = record['Event']['EventData']['Data']
+                    record['Event']['EventData']['Data'] = {}
+                    record['Event']['EventData']['Data']['#text'] = tmp
+            except KeyError:
+                pass
+            except TypeError:
+                pass
+
             JSONevents = JSONevents + '{"index": {}}\n'
             JSONevents = JSONevents + json.dumps(record) + "\n" 
-            
+
             # Dump log buffer when full
             if logBufferLength >= int(logBufferSize):
                 count_postedrecord = count_postedrecord + logBufferSize
@@ -101,7 +112,6 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
         logBufferLength = 0
         JSONevents = ""
             
-
 
 def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token=""):
     if not debug:
