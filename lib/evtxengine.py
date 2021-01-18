@@ -12,11 +12,9 @@ import lib.elastic as elastic
 import lib.projectengine as projectengine
 from evtx import PyEvtxParser
 
-def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token=""):
+def parserecord(task, filename, num_items, logBufferSize, index, nodes, debug, support_queue, token=""):
 
-    start = task['start']
-    batch = task['count']
-    end = (start + batch)
+
     count = 0
 
 
@@ -56,18 +54,18 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, GlobalRe
             # Dump log buffer when full
             if logBufferLength >= int(logBufferSize):
                 count_postedrecord = count_postedrecord + logBufferSize
-                dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+                dump_batch(JSONevents, index, nodes, logBufferLength, num_items, debug, support_queue, token)
                 JSONevents = ""
                 logBufferLength = 0
 
     if logBufferLength > 0:
         count_postedrecord = count_postedrecord + logBufferLength
-        dump_batch(JSONevents, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token)
+        dump_batch(JSONevents, index, nodes, logBufferLength, num_items, debug, support_queue, token)
         logBufferLength = 0
         JSONevents = ""
             
 
-def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime, debug, support_queue, token=""):
+def dump_batch(events, index, nodes, logBufferLength, num_items, debug, support_queue, token=""):
     if not debug:
         # Web requests always work better in a thread. Waiting for network latency is silly.
         support_queue.put(
@@ -81,24 +79,15 @@ def dump_batch(events, index, nodes, GlobalRecordCount, logBufferLength, num_ite
                         }
                     })
         
-        #elastic.postToElastic(events, index, nodes, token)
-
     # Report process in seperate thread. Main process should continue even if there are issues.
     support_queue.put({
                     "type":"report",
                     "data": {
-                        #"GlobalRecordCount": GlobalRecordCount,
                         "logBufferLength": logBufferLength,
-                        "num_items": num_items,
-                        #"GlobalPercentageComplete": GlobalPercentageComplete,
-                        #"GlobalTiming": GlobalTiming,
-                        #"TooShortToTime": TooShortToTime
+                        "num_items": num_items
                     }
     })
     
-    #report_thread = threading.Thread(target=projectengine.report_progress, args=(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime,))
-    #report_thread.start()
-    #report_thread.join()
 
 def validate_log_files(file_list):
 
@@ -124,16 +113,20 @@ def validate_log_files(file_list):
 
 
 
-def process_project(queue, args):
+def process_project(queue, support_queue, supportproc, process_queue, args):
     
     nodes = args.nodes.replace(" ", "").split(',')
     i = 0
-    for file_path in queue['files_to_process']:
-        print("")
-        print("### File " + str(i + 1) + " of " + str(queue['count']) + ": " + file_path)
+
+    while True:
+        try:
+            file_path = process_queue.get(True, 1) # Try for up to 1 sec to get data, else give up
+        
+        except queues.Empty:
+            break
+
         start_time = datetime.now()
-        print("### " + str(start_time))
-        print("")
+        print("[" + str(datetime.now()) + "] Processing File " + file_path)
         
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
@@ -160,134 +153,29 @@ def process_project(queue, args):
         total_records = (last - first) + 1 
 
         if total_records == 0 or last == 0:
-            print("No logs in file, skipping...")
+            print("[" + str(datetime.now()) + "] No logs identified  in file " + file_path)
             i = i + 1
             continue
 
-       
-        # We need to calculate how many records to assign to each process
-        record_batch = (total_records // args.cores)
-        remainder = total_records - (record_batch * args.cores)
-        store_remainder = remainder
-
-        # If record_batch is not zero, there is at least one record per task
-        Tasks = {}
-        start = 0
-
-        if record_batch > 0:
-
-            for task in range(args.cores):
-                if remainder > 0:
-                    task_batch = record_batch + 1
-                    remainder = remainder - 1
-                else:
-                    task_batch = record_batch
-                Tasks[task] = {}
-                Tasks[task]['count'] = task_batch
-                Tasks[task]['start'] = start
-                start = start + task_batch
-
-        # We should have already caught and removed log files with < 1 records in total
-        else:
-            # There is less than 1 record per task
-            for task in range(args.cores):
-                if remainder > 0:
-                    task_batch = record_batch + 1
-                    remainder = remainder - 1
-                else:
-                    task_batch = 0
-                Tasks[task] = {}
-                Tasks[task]['count'] = task_batch
-                Tasks[task]['start'] = start
-                start = start + task_batch
-
         if total_records > 0:
-            print("There are " + str(total_records) + " logs in total.")
-            print("Allocating " + str(record_batch) + " logs per process with " + str(store_remainder) + " remainder.")
+            print("[" + str(datetime.now()) + "] Counted " + str(total_records) + " logs in file " + file_path)
         else:
-            print("Unable to count file - but we will process it anyway!")
+            print("[" + str(datetime.now()) + "] Unable to count logs in file " + file_path)
 
-        procs = []
-        proc = []
-        # We need some variables to store some processing data
-        GlobalRecordCount = Value('i', lock=True) # Will store count
-        GlobalPercentageComplete = Value('i', lock=True)
-        GlobalTiming = Value('f', lock=True)
-        TooShortToTime = Value('i', lock=True)
-
-        # Some of these values need to be set
-        try:
-            if GlobalTiming.acquire(True, 1000):
-                GlobalTiming.value = time.time()
-            if GlobalPercentageComplete.acquire(True, 1000):
-                GlobalPercentageComplete.value = 0
-            if TooShortToTime.acquire(True, 1000):
-                TooShortToTime.value = 0
-        except:
-            pass
-        finally:
-            GlobalTiming.release()
-            GlobalPercentageComplete.release()
-            TooShortToTime.release()
-
-
-        # TODO: Create a single dedicated process to handle web submissions and reporting
-        # Form the queue!
-        support_queue = Queue()
-
-        supportproc = Process(
-            target=elastic.core_posting_worker,
-            args=(
-                    support_queue,
-                    GlobalRecordCount,
-                    GlobalPercentageComplete,
-                    GlobalTiming,
-                    TooShortToTime
-            ),
-            name="support"
-        )
-        supportproc.start()
-
-        # Start the processes for parsing event data
-        for process in range(args.cores):
-            proc_name = str(process)
-            proc = Process(
-                            target=parserecord,
-                            args=(
-                                    Tasks[process],
-                                    file_path,
-                                    total_records,
-                                    int(args.buffer),
-                                    args.index,
-                                    nodes,
-                                    GlobalRecordCount,
-                                    GlobalPercentageComplete,
-                                    GlobalTiming,
-                                    TooShortToTime,
-                                    args.debug,
-                                    support_queue,
-                                    args.token                 
-                            ), 
-                            name=proc_name
-                    )
-            
-            procs.append(proc)
-            proc.start()
-
-        # Wait for all processes to complete
-        for proc in procs:
-            proc.join()
-
-        # Once all processes are joined, we can send stop command to support core
-        support_queue.put("STOP")
-        supportproc.join()
+        parserecord(    file_path,
+                        total_records,
+                        int(args.buffer),
+                        args.index,
+                        nodes,
+                        args.debug,
+                        support_queue,
+                        args.token                 
+                    ) 
 
         i = i + 1
         end_time = datetime.now()
         duration = end_time - start_time
-        print("")
-        print("File " + str(i) + " completed in: " + str(duration))   
-        print("")
+        print("[" + str(datetime.now()) + "] File " + file_path + " completed in: " + str(duration))   
 
 
 

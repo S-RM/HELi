@@ -44,7 +44,7 @@ fileorfolder.add_argument(
 parser.add_argument(
     "--cores",
     "-c",
-    default=cpu_count(),
+    default=2,
     type=int,
     help=
     """
@@ -190,82 +190,9 @@ if args.pfolder is not "empty":
         exit()    
 
 
-def report_progress(GlobalRecordCount, logBufferLength, num_items, GlobalPercentageComplete, GlobalTiming, TooShortToTime):
+def report_progress(logBufferLength, num_items):
 
-    report = ""
-
-    # If we can't acquire any of the variables, let's just quit this report.
-
-    if GlobalRecordCount.acquire(True, 1000): # Try for 1000 ms to acquire
-        # Now we can send the update
-        GlobalRecordCount.value = GlobalRecordCount.value + logBufferLength        
-        record_count = GlobalRecordCount.value
-    else:
-        return False
-
-    if GlobalPercentageComplete.acquire(True, 1000):
-        last_update = GlobalPercentageComplete.value
-    else:
-        return False
-
-    if GlobalTiming.acquire(True, 1000):
-        processing_time = GlobalTiming.value
-    else:
-        return False
-
-    if TooShortToTime.acquire(True, 1000):
-        TooShort = TooShortToTime.value
-    else:
-        return False
-
-    # If anything at all goes wrong, let's just make sure the lock is released
-    try:
-        # Calculate the percentage
-        percentage_float = (float(record_count) / float(num_items)) * 100
-        percentage = int(percentage_float)
-
-        # Percentage updates change frequency depending on how long we expect processing to last
-        if ((percentage > last_update) and (percentage <= last_update + 10) and (percentage_float > 5) and (num_items < 2000000)) or ((percentage > last_update) and (percentage <= last_update + 10) and (percentage_float > 1) and num_items >= 2000000) or (percentage >= 100): # greater than 3% to give us better data
-            # Output update about the proccessing
-            report = "Processing file: " + str(record_count) + " / " + str(num_items) + " (" + str(percentage) + "%)"
-            GlobalPercentageComplete.value = last_update + 10
-
-            # We can also do something clever and try to calculate an ETA for completion
-            # Calculate time delta
-            update_time = time.time()
-            delta = update_time - processing_time
-            left_to_complete = 100 / percentage_float
-            eta = (delta * left_to_complete) - (delta)
-            
-            if (TooShort == 0) or (TooShort == 1 and eta > 120):
-
-                if eta > 120 and num_items > 10000: # If we have less than 10,000, not worth it
-
-                    if eta >= 60 and eta < 3600:
-                        report = report + " -- Estimated time remaining: " + str(int(eta / 60)) + " minutes"
-                    
-                    elif eta >= 3600:
-                        report = report + " -- Estimated time remaining: " + str(round(eta / 3600, 2)) + " hours"
-
-                    else:
-                        report = report + " -- Estimated time remaining: " + str(int(eta)) + " seconds"
-
-                else:
-                    report = report + " -- Estimated time remaining:" + " a few minutes"
-                    TooShortToTime.value = 1
-
-    except Exception as e:
-        print("Error in reporting: " + str(e))
-
-    finally:
-        # In case anything goes wrong
-        # And now release the variable
-        if len(report) > 0:
-            print(report)
-        GlobalRecordCount.release()
-        GlobalPercentageComplete.release()
-        GlobalTiming.release()
-        TooShortToTime.release()
+    pass
 
 
 def prepare_files_to_process(path, folder_priorities=[], log_priorities=[], strict_mode=False):
@@ -422,7 +349,7 @@ def initiate():
                     print(str(error) + " -    " + "Path: " + queue['errors'][error]['path'])
                     print("       Reason: " + queue['errors'][error]['reason'])
             else:
-                print("         If you continue, these files will be ignored. Run this script in debug mode to see further details.")
+                print("If you continue, these files will be ignored. Run this script in debug mode to see further details.")
 
     print("")
     print("----------------------------------------------------------")
