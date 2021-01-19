@@ -46,7 +46,7 @@ def thread_worker(item_queue):
             elif item['type'] == "report":
                 
                 projectengine.report_progress(
-                    item['data']['logBufferLength'],
+                    item['data']['count_postedrecord'],
                     item['data']['num_items']
                 )
 

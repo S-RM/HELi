@@ -25,6 +25,8 @@ if __name__ == "__main__":
     print("### Project Starting ###")
     print("")
 
+    input("Press Enter to continue...")
+
     # TODO: Create a single dedicated process to handle web submissions and reporting
     # Form the queue!
     support_queue = Queue()
@@ -62,9 +64,6 @@ if __name__ == "__main__":
 
     end_datetime = datetime.now()
     duration_datetime = end_datetime - start_datetime
-
-
-
 
     print("")
     print("### Project Complete ###")

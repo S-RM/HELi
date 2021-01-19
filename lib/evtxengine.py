@@ -14,12 +14,8 @@ from evtx import PyEvtxParser
 
 def parserecord(task, filename, num_items, logBufferSize, index, nodes, debug, support_queue, token=""):
 
-
     count = 0
-
-
     JSONevents = ""
-
     logBufferLength = 0
     count_postedrecord = 0
         
@@ -63,6 +59,8 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, debug, s
         dump_batch(JSONevents, index, nodes, logBufferLength, num_items, debug, support_queue, token)
         logBufferLength = 0
         JSONevents = ""
+
+    return count_postedrecord
             
 
 def dump_batch(events, index, nodes, logBufferLength, num_items, debug, support_queue, token=""):
@@ -83,7 +81,7 @@ def dump_batch(events, index, nodes, logBufferLength, num_items, debug, support_
     support_queue.put({
                     "type":"report",
                     "data": {
-                        "logBufferLength": logBufferLength,
+                        "count_postedrecord": count_postedrecord,
                         "num_items": num_items
                     }
     })
@@ -111,8 +109,6 @@ def validate_log_files(file_list):
 
     return return_data
 
-
-
 def process_project(queue, support_queue, supportproc, process_queue, args):
     
     nodes = args.nodes.replace(" ", "").split(',')
@@ -126,7 +122,7 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
             break
 
         start_time = datetime.now()
-        print("[" + str(datetime.now()) + "] Processing File " + file_path)
+        print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [PROCESSING] " + file_path)
         
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
@@ -153,16 +149,14 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         total_records = (last - first) + 1 
 
         if total_records == 0 or last == 0:
-            print("[" + str(datetime.now()) + "] No logs identified  in file " + file_path)
+            print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] No logs identified  in file " + file_path + ", skipping...")
             i = i + 1
             continue
 
         if total_records > 0:
-            print("[" + str(datetime.now()) + "] Counted " + str(total_records) + " logs in file " + file_path)
-        else:
-            print("[" + str(datetime.now()) + "] Unable to count logs in file " + file_path)
+            print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] Counted " + str(total_records) + " logs in file " + file_path)
 
-        parserecord(    file_path,
+        records_in = parserecord(    file_path,
                         total_records,
                         int(args.buffer),
                         args.index,
@@ -175,7 +169,7 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         i = i + 1
         end_time = datetime.now()
         duration = end_time - start_time
-        print("[" + str(datetime.now()) + "] File " + file_path + " completed in: " + str(duration))   
+        print("[" + str(datetime.now()) + "] -- [COMPLETED] " + file_path + " in: " + str(duration) + " and counted " + str(records_in) + " records")   
 
 
 

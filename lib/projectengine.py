@@ -190,7 +190,7 @@ if args.pfolder is not "empty":
         exit()    
 
 
-def report_progress(logBufferLength, num_items):
+def report_progress(counted_records, target_num_records):
 
     pass
 
