@@ -58,6 +58,9 @@ if __name__ == "__main__":
     for proc in procs:
         proc.join()
 
+    print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [COMPLETED] All files processed!")
+    print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] Waiting for submission jobs to finish (this may take a while)")
+
     # Once all processes are joined, we can send stop command to support core
     support_queue.put("STOP")
     supportproc.join()

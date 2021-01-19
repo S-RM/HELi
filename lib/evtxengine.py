@@ -12,19 +12,18 @@ import lib.elastic as elastic
 import lib.projectengine as projectengine
 from evtx import PyEvtxParser
 
-def parserecord(task, filename, num_items, logBufferSize, index, nodes, debug, support_queue, token=""):
+def parserecord(filename, num_items, logBufferSize, index, nodes, debug, support_queue, token=""):
 
     count = 0
     JSONevents = ""
     logBufferLength = 0
     count_postedrecord = 0
-        
+      
     parser = PyEvtxParser(filename)
     for record in parser.records_json():
 
             count = count + 1
             logBufferLength = logBufferLength + 1
-            event = {}
 
             record = json.loads(record['data'])
 
@@ -50,20 +49,20 @@ def parserecord(task, filename, num_items, logBufferSize, index, nodes, debug, s
             # Dump log buffer when full
             if logBufferLength >= int(logBufferSize):
                 count_postedrecord = count_postedrecord + logBufferSize
-                dump_batch(JSONevents, index, nodes, logBufferLength, num_items, debug, support_queue, token)
+                dump_batch(JSONevents, index, nodes, count_postedrecord, num_items, debug, support_queue, token)
                 JSONevents = ""
                 logBufferLength = 0
 
     if logBufferLength > 0:
         count_postedrecord = count_postedrecord + logBufferLength
-        dump_batch(JSONevents, index, nodes, logBufferLength, num_items, debug, support_queue, token)
+        dump_batch(JSONevents, index, nodes, count_postedrecord, num_items, debug, support_queue, token)
         logBufferLength = 0
         JSONevents = ""
 
     return count_postedrecord
             
 
-def dump_batch(events, index, nodes, logBufferLength, num_items, debug, support_queue, token=""):
+def dump_batch(events, index, nodes, count_postedrecord, num_items, debug, support_queue, token=""):
     if not debug:
         # Web requests always work better in a thread. Waiting for network latency is silly.
         support_queue.put(
@@ -169,7 +168,7 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         i = i + 1
         end_time = datetime.now()
         duration = end_time - start_time
-        print("[" + str(datetime.now()) + "] -- [COMPLETED] " + file_path + " in: " + str(duration) + " and counted " + str(records_in) + " records")   
+        print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [COMPLETED] " + file_path + " in: " + str(duration) + " and counted " + str(records_in) + " records")   
 
 
 

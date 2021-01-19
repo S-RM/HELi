@@ -184,7 +184,7 @@ if args.plog != "empty":
         print("--plog cannt be set in file mode.")
         exit()
 
-if args.pfolder is not "empty":
+if args.pfolder != "empty":
     if args.file:
         "--pfolder cannt be set in file mode."
         exit()    
