@@ -5,13 +5,13 @@ from multiprocessing import Queue, queues
 import lib.projectengine as projectengine
 import threading
 
-def core_posting_worker(queue, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime, thread_count=2):
+def core_posting_worker(queue, thread_count=2):
 
     # Start threads to push data to
     item_queue = Queue()
     threads = []
     for i in range(thread_count):
-        t = threading.Thread(target=thread_worker, args=[item_queue, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime,], name=i)
+        t = threading.Thread(target=thread_worker, args=[item_queue,], name=i)
         t.start()
         threads.append(t)
 
@@ -34,7 +34,7 @@ def core_posting_worker(queue, GlobalRecordCount, GlobalPercentageComplete, Glob
     for t in threads:
         t.join()
 
-def thread_worker(item_queue, GlobalRecordCount, GlobalPercentageComplete, GlobalTiming, TooShortToTime):
+def thread_worker(item_queue):
 
     while True:
         try:
@@ -46,12 +46,8 @@ def thread_worker(item_queue, GlobalRecordCount, GlobalPercentageComplete, Globa
             elif item['type'] == "report":
                 
                 projectengine.report_progress(
-                    GlobalRecordCount, 
-                    item['data']['logBufferLength'],
-                    item['data']['num_items'],
-                    GlobalPercentageComplete,
-                    GlobalTiming,
-                    TooShortToTime
+                    item['data']['count_postedrecord'],
+                    item['data']['num_items']
                 )
 
             elif item['type'] == "post":
@@ -82,19 +78,10 @@ def postToElastic(events, index, nodes, token=b""):
     while not success:
         try:
             # Post to current node
-            results = requests.post(nodes[currentNode] + "/" + index + "/_bulk", data=events, headers=headers)
+            results = requests.post(nodes[currentNode], data=events, headers=headers)
 
             if results.status_code == 200:
                 success = True
-
-            elif results.status_code == 429:
-                if count < len(nodes):
-                    currentNode = (currentNode + 1) % len(nodes)
-                    count = count + 1
-                    pass
-                else:
-                    print(json.dumps(results.json(), indent=4))
-                    break
             else:
                print(json.dumps(results.json(), indent=4))
                break
@@ -102,9 +89,6 @@ def postToElastic(events, index, nodes, token=b""):
         except Exception as e:
             print(str(e))
 
-    for item in results.json()['items']:
-        if item['index']['status'] != 201:
-            print(json.dumps(item, indent=4))
 
 
 
