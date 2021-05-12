@@ -120,6 +120,9 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         except queues.Empty:
             break
 
+        # Flag for identifying invalid files
+        invalid = False
+
         start_time = datetime.now()
         print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [PROCESSING] " + file_path)
         
@@ -139,13 +142,25 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
             oldest = fh.oldest_chunk() + 1
             count = 0
             while True:
-                chunk = next(chunks)
+                try:
+                    chunk = next(chunks)
+                except StopIteration:
+                    invalid = True
+                    break
                 count = count + 1
                 if count == oldest:
                     first = chunk.log_first_record_number()
                     break
 
-        total_records = (last - first) + 1 
+        # Filter out bad files
+        if invalid == True:
+            print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] Log file: " + file_path + " is invalid, skipping...")
+            i = i + 1
+            continue
+
+        # Else, calculate likely total records
+        else:
+            total_records = (last - first) + 1 
 
         if total_records == 0 or last == 0:
             print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] No logs identified  in file " + file_path + ", skipping...")
