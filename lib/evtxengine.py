@@ -170,20 +170,27 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         if total_records > 0:
             print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] Counted " + str(total_records) + " logs in file " + file_path)
 
-        records_in = parserecord(    file_path,
-                        total_records,
-                        int(args.buffer),
-                        args.index,
-                        nodes,
-                        args.debug,
-                        support_queue,
-                        args.token                 
-                    ) 
+        try:
+            records_in = parserecord(    file_path,
+                            total_records,
+                            int(args.buffer),
+                            args.index,
+                            nodes,
+                            args.debug,
+                            support_queue,
+                            args.token                 
+                        ) 
+        except Exception:
+            print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [WARN] " + file_path + " is an invalid EVTX file. Incorrect file header, skipping...")
+            i = i + 1
+            continue
+
 
         i = i + 1
         end_time = datetime.now()
         duration = end_time - start_time
-        print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [COMPLETED] " + file_path + " in: " + str(duration) + " and counted " + str(records_in) + " records")   
+        print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [COMPLETED] " + file_path + " in: " + str(duration) + " and counted " + str(records_in) + " records")
+        continue
 
 
 
