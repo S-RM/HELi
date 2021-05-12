@@ -126,6 +126,13 @@ def process_project(queue, support_queue, supportproc, process_queue, args):
         start_time = datetime.now()
         print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [PROCESSING] " + file_path)
         
+        # Check if the file is > 0 bytes
+        if os.stat(file_path).st_size == 0:
+            # File is empty, skip
+            print("[" + str(datetime.now().replace(microsecond=0)) + "] -- [INFO] Log file: " + file_path + " is empty, skipping...")
+            i = i + 1
+            continue
+
         # First, lets instantiate the EVTX object
         evtxObject = evtx.Evtx(file_path)
 
